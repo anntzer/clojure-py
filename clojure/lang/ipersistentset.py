@@ -1,13 +1,17 @@
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
 from clojure.lang.ipersistentcollection import IPersistentCollection
 from clojure.lang.counted import Counted
 
 class IPersistentSet(IPersistentCollection, Counted):
-    def disjoin(self, key):
-        raise AbstractMethodCall(self)
+    __metaclass__ = ABCMeta
 
+    @abstractmethod
+    def disjoin(self, key):
+        pass
+
+    @abstractmethod
     def __contains__(self, item):
-        raise AbstractMethodCall(self)
+        pass
 
     def __getitem__(self, item):
         return self.get(item)

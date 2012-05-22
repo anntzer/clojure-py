@@ -1,4 +1,5 @@
 import __builtin__
+from abc import ABCMeta, abstractmethod
 import dis
 import marshal
 import pickle
@@ -9,7 +10,7 @@ import time
 import fractions
 
 from clojure.lang.cons import Cons
-from clojure.lang.cljexceptions import CompilerException, AbstractMethodCall
+from clojure.lang.cljexceptions import CompilerException
 from clojure.lang.cljkeyword import Keyword
 from clojure.lang.ipersistentvector import IPersistentVector
 from clojure.lang.ipersistentmap import IPersistentMap
@@ -1088,12 +1089,19 @@ top of eachother, let-macros can turn 'x into (.-x self), etc.
 
 class AAlias(object):
     """Base class for all aliases"""
+    __metaclass__ = ABCMeta
+
     def __init__(self, rest = None):
         self.rest = rest
+
+    @abstractmethod
     def compile(self, comp):
-        raise AbstractMethodCall(self)
+        pass
+
+    @abstractmethod
     def compileSet(self, comp):
-        raise AbstractMethodCall(self)
+        pass
+
     def next(self):
         return self.rest
 

@@ -1,9 +1,15 @@
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
+
 from clojure.lang.ipersistentcollection import IPersistentCollection
 
-class IPersistentStack(IPersistentCollection):
-    def peek(self):
-        raise AbstractMethodCall(self)
 
+class IPersistentStack(IPersistentCollection):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def peek(self):
+        pass
+
+    @abstractmethod
     def pop(self):
-        raise AbstractMethodCall(self)
+        pass

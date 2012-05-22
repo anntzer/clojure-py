@@ -1,9 +1,13 @@
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
 
 
 class Settable(object):
-    def doSet(self, o):
-        raise AbstractMethodCall(self)
+    __metaclass__ = ABCMeta
 
+    @abstractmethod
+    def doSet(self, o):
+        pass
+
+    @abstractmethod
     def doReset(self, o):
-        raise AbstractMethodCall(self)
+        pass

@@ -1,5 +1,9 @@
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
 
 class ILookup(object):
-    def valAt(self, key, notFound = None):
-        raise AbstractMethodCall(self)
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def valAt(self, key, notFound=None):
+        pass
+

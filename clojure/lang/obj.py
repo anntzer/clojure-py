@@ -3,7 +3,7 @@ March 25, 2012 -- documented
 """
 
 from clojure.lang.iobj import IObj
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
 
 
 class Obj(IObj, object):
@@ -13,11 +13,17 @@ class Obj(IObj, object):
              This attribute may not exist if a map has not been assigned.
 
     This map does not change the identiy of the object. When two subclass
-    instances are compared, their meta data should be disregarded."""
+    instances are compared, their meta data should be disregarded.
+    """
+
+    __metaclass__ = ABCMeta
+
     def meta(self):
-        """Return a PersistentHashMap or None if no meta data attached."""
+        """Return a PersistentHashMap or None if no meta data attached.
+        """
         return getattr(self, "_meta", None)
 
+    @abstractmethod
     def withMeta(self, meta):
         """Attach meta data to a subclass instance.
 
@@ -26,5 +32,5 @@ class Obj(IObj, object):
         Subclasses generally return a *new* instance of themselves with meta
         attached.
 
-        This base raises AbstractMethodCall"""
-        raise AbstractMethodCall(self)
+        This base is abstract.
+        """

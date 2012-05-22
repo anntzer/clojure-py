@@ -1,8 +1,12 @@
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
 
 class ITransientCollection(object):
-    def conj(self, val):
-        raise AbstractMethodCall(self)
+    __metaclass__ = ABCMeta
 
+    @abstractmethod
+    def conj(self, val):
+        pass
+
+    @abstractmethod
     def persistent(self):
-        raise AbstractMethodCall(self)
+        pass

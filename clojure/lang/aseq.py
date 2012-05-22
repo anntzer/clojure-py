@@ -14,7 +14,6 @@ from clojure.lang.iprintable import IPrintable
 from clojure.lang.sequential import Sequential
 from clojure.lang.ipersistentmap import IPersistentMap
 from clojure.lang.ipersistentset import IPersistentSet
-from clojure.lang.cljexceptions import AbstractMethodCall
 
 
 class ASeq(Obj, Sequential, ISeq, IHashEq, Iterable, IPrintable):
@@ -78,10 +77,6 @@ class ASeq(Obj, Sequential, ISeq, IHashEq, Iterable, IPrintable):
             from clojure.lang.persistentlist import EMPTY
             return EMPTY
         return s
-
-    # def first(self):
-    #     """Raise AbstractMethodCall."""
-    #     raise AbstractMethodCall(self)
 
     def __iter__(self):
         """Return an iterator on this sequence."""

@@ -1,5 +1,9 @@
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
 
 class Counted(object):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def __len__(self):
-        raise AbstractMethodCall(self)
+        """Returns the size of an object.
+        """

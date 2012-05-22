@@ -1,5 +1,4 @@
-from clojure.lang.cljexceptions import (AbstractMethodCall,
-                                           InvalidArgumentException)
+from clojure.lang.cljexceptions import InvalidArgumentException
 from clojure.lang.mapentry import MapEntry
 import clojure.lang.rt as RT
 
@@ -7,10 +6,6 @@ import clojure.lang.rt as RT
 def hashCombine(hash, seed):#FIXME - unused argument?
     seed ^= seed + 0x9e3779b9 + (seed << 6) + (seed >> 2)
     return seed
-
-
-def hasheq(o):
-    raise AbstractMethodCall()
 
 
 def conjToAssoc(self, o):

@@ -1,13 +1,20 @@
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
+
 from clojure.lang.seqable import Seqable
 
+
 class IPersistentCollection(Seqable, object):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def count(self):
-        raise AbstractMethodCall(self)
+        pass
 
+    @abstractmethod
     def cons(self, o):
-        raise AbstractMethodCall(self)
+        pass
 
+    @abstractmethod
     def empty(self):
-        raise AbstractMethodCall(self)
+        pass
 

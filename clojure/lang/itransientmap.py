@@ -1,13 +1,19 @@
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
+
 from clojure.lang.itransientassociative import ITransientAssociative
 from clojure.lang.counted import Counted
 
 class ITransientMap(ITransientAssociative, Counted):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def assoc(self, key, value):
-        raise AbstractMethodCall(self)
+        pass
 
+    @abstractmethod
     def without(self, key):
-        raise AbstractMethodCall(self)
+        pass
 
+    @abstractmethod
     def persistent(self):
-        raise AbstractMethodCall(self)
+        pass

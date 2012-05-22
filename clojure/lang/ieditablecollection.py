@@ -1,5 +1,9 @@
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
 
 class IEditableCollection(object):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def asTransient(self):
-        raise AbstractMethodCall(self)
+        """Render a persistent object transient.
+        """

@@ -1,9 +1,13 @@
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
 
 
 class Named(object):
-    def getNamespace(self):
-        raise AbstractMethodCall(self)
+    __metaclass__ = ABCMeta
 
+    @abstractmethod
+    def getNamespace(self):
+        pass
+
+    @abstractmethod
     def getName(self):
-        raise AbstractMethodCall(self)
+        pass

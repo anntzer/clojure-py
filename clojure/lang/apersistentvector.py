@@ -10,7 +10,7 @@ from clojure.lang.iprintable import IPrintable
 from clojure.lang.indexableseq import IndexableSeq
 from clojure.lang.ipersistentset import IPersistentSet
 from clojure.lang.ipersistentvector import IPersistentVector
-from clojure.lang.cljexceptions import AbstractMethodCall, ArityException
+from clojure.lang.cljexceptions import ArityException
 from clojure.lang.cljexceptions import IndexOutOfBoundsException
 
 class APersistentVector(IPersistentVector, IPrintable):

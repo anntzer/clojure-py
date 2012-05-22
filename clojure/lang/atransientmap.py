@@ -1,27 +1,42 @@
+from abc import ABCMeta, abstractmethod
+
 from clojure.lang.ifn import IFn
-from clojure.lang.cljexceptions import AbstractMethodCall
 from clojure.lang.itransientmap import ITransientMap
 import clojure.lang.rt as RT
 from clojure.lang.iprintable import IPrintable
 
 class ATransientMap(IFn, ITransientMap, IPrintable):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def ensureEditable(self):
-        raise AbstractMethodCall(self)
+        """Ensure that a transient object is editable.
+        """
 
+    @abstractmethod
     def doAssoc(self, key, val):
-        raise AbstractMethodCall(self)
+        """Add to an object an extra mapping from a key to a value.
+        """
 
+    @abstractmethod
     def doWithout(self, key):
-        raise AbstractMethodCall(self)
+        """Remove from an object an mapping given its key.
+        """
 
-    def doValAt(self, key, notFound = None):
-        raise AbstractMethodCall(self)
+    @abstractmethod
+    def doValAt(self, key, notFound=None):
+        """Return the mapping an object gives to a key.
+        """
 
+    @abstractmethod
     def doCount(self):
-        raise AbstractMethodCall(self)
+        """Count an object.
+        """
 
+    @abstractmethod
     def doPersistent(self):
-        raise AbstractMethodCall(self)
+        """Render a transient object persistent.
+        """
 
     def conj(self, val):
         self.ensureEditable()

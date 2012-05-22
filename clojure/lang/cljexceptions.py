@@ -1,11 +1,3 @@
-class AbstractMethodCall(Exception):
-    def __init__(self, cls=None):
-        if cls is not None:
-            Exception.__init__(self, "in " + cls.__class__.__name__)
-        else:
-            Exception.__init__(self)
-
-
 class ArityException(TypeError):
     pass
 

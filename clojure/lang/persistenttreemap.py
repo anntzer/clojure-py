@@ -1,8 +1,9 @@
+from abc import ABCMeta, abstractmethod
+
 from clojure.lang.apersistentmap import APersistentMap
 from clojure.lang.aseq import ASeq
 from clojure.lang.box import Box
 from clojure.lang.cljexceptions import (ArityException,
-                                        AbstractMethodCall,
                                         IllegalArgumentException,
                                         UnsupportedOperationException)
 from clojure.lang.comparator import Comparator
@@ -374,6 +375,8 @@ def black(key, val, left, right):
 
 
 class Node(object):
+    __metaclass__ = ABCMeta
+
     def __init__(self, key):
         self._key = key
 
@@ -391,23 +394,29 @@ class Node(object):
     def right(self):
         return None
 
+    @abstractmethod
     def addLeft(self, ins):
-        raise AbstractMethodCall()
+        pass
 
+    @abstractmethod
     def addRight(self, ins):
-        raise AbstractMethodCall()
+        pass
 
+    @abstractmethod
     def removeLeft(self, del_):
-        raise AbstractMethodCall()
+        pass
 
+    @abstractmethod
     def removeRight(self, del_):
-        raise AbstractMethodCall()
+        pass
 
+    @abstractmethod
     def blacken(self):
-        raise AbstractMethodCall()
+        pass
 
+    @abstractmethod
     def redden(self):
-        raise AbstractMethodCall()
+        pass
 
     def balanceLeft(self, parent):
         return black(parent.key(), parent.val(), self, parent.right())
@@ -415,8 +424,9 @@ class Node(object):
     def balanceRight(self, parent):
         return black(parent.key(), parent.val(), parent.left(), self)
 
+    @abstractmethod
     def replace(self, key, val, left, right):
-        raise AbstractMethodCall()
+        pass
 
 
 class Black(Node):

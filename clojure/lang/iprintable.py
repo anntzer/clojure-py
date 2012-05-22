@@ -2,7 +2,7 @@
 March 30, 2012 -- documented
 """
 
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
 
 
 class IPrintable(object):
@@ -20,6 +20,10 @@ class IPrintable(object):
     * Don't pretty-print to the writer
     * Don't write leading or trailing white space
       (including a trailing newline)"""
+
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def writeAsString(self, writer):
         """Write a user-friendly string to writer.
 
@@ -28,7 +32,8 @@ class IPrintable(object):
         This function mimics the Python __str__ method. If the printed
         representation is the same at the Python repl and at the clojure-py
         repl, this method could simply write str(self)."""
-        raise AbstractMethodCall(self)
+
+    @abstractmethod
     def writeAsReplString(self, writer):
         """Write a string readable by the clojure-py reader to writer.
 
@@ -49,4 +54,3 @@ class IPrintable(object):
         user=> sys/path
         #<__builtin__.list object at 0xdeadbeef>
         user=>"""
-        raise AbstractMethodCall(self)        

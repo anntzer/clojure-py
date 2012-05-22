@@ -1,5 +1,7 @@
+from abc import ABCMeta, abstractmethod
+
 from clojure.lang.apersistentmap import APersistentMap
-from clojure.lang.cljexceptions import ArityException, AbstractMethodCall
+from clojure.lang.cljexceptions import ArityException
 from clojure.lang.ieditablecollection import IEditableCollection
 from clojure.lang.iobj import IObj
 from clojure.lang.aseq import ASeq
@@ -147,23 +149,31 @@ def fromDict(d):
 
 
 class INode(object):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def assoc(self, shift,  hsh, key, val, addedLeaf):
-        raise AbstractMethodCall(self)
+        pass
 
+    @abstractmethod
     def without(self,  shift,  hsh, key):
-        raise AbstractMethodCall(self)
+        pass
 
+    @abstractmethod
     def find(self,  shift,  hsh, key, notFound = None):
-        raise AbstractMethodCall(self)
+        pass
 
+    @abstractmethod
     def nodeSeq(self):
-        raise AbstractMethodCall(self)
+        pass
 
+    @abstractmethod
     def assocEd(self, edit,  shift, hsh, key, val, addedLeaf):
-        raise AbstractMethodCall(self)
+        pass
 
+    @abstractmethod
     def withoutEd(self,  edit,  shift,  hsh,  key,  removedLeaf):
-        raise AbstractMethodCall(self)
+        pass
 
 class ArrayNode(INode):
     def __init__(self, edit, count, array):

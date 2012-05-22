@@ -1,18 +1,30 @@
-from clojure.lang.cljexceptions import AbstractMethodCall
+from abc import ABCMeta, abstractmethod
 from clojure.lang.ideref import IDeref
 
 class IRef(IDeref):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def setValidator(self, fn):
-        raise AbstractMethodCall(self)
+        """Sets the validator for an object.
+        """
 
+    @abstractmethod
     def getValidator(self):
-        raise AbstractMethodCall(self)
+        """Returns the validator of an object.
+        """
 
+    @abstractmethod
     def getWatches(self):
-        raise AbstractMethodCall(self)
+        """Returns the watchers of an object.
+        """
 
+    @abstractmethod
     def addWatch(self, key, fn):
-        raise AbstractMethodCall(self)
+        """Adds a watcher to an object with a given key.
+        """
 
+    @abstractmethod
     def removeWatch(self, key):
-        raise AbstractMethodCall(self)
+        """Removes the watcher from an object, given its key.
+        """
