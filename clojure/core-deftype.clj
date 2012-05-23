@@ -76,7 +76,7 @@
          (debug `(do (def ~name (py/type ~(clojure.core/name name)
                                       (py/tuple [py/object])
                                       (.toDict ~methods)))
-                     (clojure.lang.protocol/protocolFromType (ns-name ~'*ns*) ~name)
+                     (clojure.lang.protocol/protocolFromType ~'*ns* ~name)
                 ~@(for [s sigs :when (string? (last s))]
                     `(py/setattr (resolve ~(list 'quote (first s)))
                                  "__doc__"

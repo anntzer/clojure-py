@@ -356,7 +356,7 @@ def compileDot(comp, form):
         code = alias.compile(comp)
         code.append((LOAD_ATTR, attr))
     else:
-        code = comp.compile(Symbol(clss, attr))
+        code = comp.compile(Symbol(str(clss), attr))
 
     for x in args:
         code.extend(x)

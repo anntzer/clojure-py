@@ -1,213 +1,200 @@
 from clojure.lang.namespace import Namespace
 import clojure.lang.rt as RT
 
+
 class ProtocolException(Exception):
     pass
-    # def __init__(self, msg):
-    #     Exception__init__(msg)
-
 
 
 def getFuncName(protocol, funcname):
     return str(protocol) + funcname
-    
+
+
 class ProtocolFn(object):
-    """Defines a function that dispatches on the type of the first argument
-    passed to __call__"""
-    
+    """A function that dispatches on the class of the first argument passed to
+    __call__.
+    """
+
     def __init__(self, fname):
         self.dispatchTable = {}
         self.name = intern(fname)
         self.attrname = intern("__proto__" + self.name)
         self.default = None
+
+    def extend(self, cls, fn):
+        """Extend a protocol function to a given class.
         
-    def extend(self, tp, fn):
-           
+        For user-defined classes, add a __proto__<name> attribute to the class.
+        For builtin classes, add an entry to the global dispatch table.
+        """
         try:
-            setattr(tp, self.attrname, fn)
+            setattr(cls, self.attrname, fn)
         except:
-            self.dispatchTable[tp] = fn
-            
-    def extendForTypes(self, tps, fn):
-        for tp in tps:
-            self.extend(tp, fn)
-            
+            self.dispatchTable[cls] = fn
+
     def setDefault(self, fn):
         self.default = fn
-            
-    def isExtendedBy(self, tp):
-        if hasattr(tp, self.attrname) or tp in self.dispatchTable:
-            return True
-        return False
-        
-           
-    def __call__(self, *args):
-        x = type(args[0])
-        if hasattr(x, self.attrname):
-            return getattr(x, self.attrname)(*args)
-        else:
-            # The table needs to be checked before the fn is called.
-            #
-            # If the following is used:
-            #
-            # try:
-            #     return self.dispatchTable[x](*args)
-            # except
-            #     if self.default:
-            #         return self.default(*args)
-            #     raise
-            #
-            # the dispatched fn may raise (even a KeyError). That exception
-            # will get silently swallowed and the default fn will get called.
-            # I believe the following will handle this, but it will also
-            # affect performance.
-            fn = self.dispatchTable.get(x)
-            if fn:
-                # let any fn exceptions propogate
-                return fn(*args)
-            else:
-                # now try the default and raise a specific exception
-                if self.default:
-                    # let any default fn exceptions propogate
-                    return self.default(*args)
-                raise ProtocolException("{0} not extended to handle: {1}"
-                                        .format(self.name, x))
 
-            
+    def isExtendedBy(self, cls):
+        """Check whether a given class extends this protocol function.
+        """
+        return hasattr(cls, self.attrname) or cls in self.dispatchTable
+
+    def __call__(self, *args):
+        """Dispatch a function call on the class of the first argument.
+        """
+        x = type(args[0])
+        try:
+            fn = getattr(x, self.attrname)
+        except AttributeError:
+            fn = self.dispatchTable.get(x, self.default)
+        if fn:
+            return fn(*args) # exceptions raised by fn will propagate.
+        raise ProtocolException("{0} not extended to handle: {1}"
+                                .format(self.name, x))
+
     def __repr__(self):
         return "ProtocolFn<" + self.name + ">"
-        
-    
-    
+
+
 class Protocol(object):
+    """A collection of ProtocolFns.
+    """
+
     def __init__(self, ns, name, fns):
-        """Defines a protocol in the given ns with the given name and functions"""
+        """Define a protocol in a given ns with given name and functions names.
+        """
         self.ns = ns
         self.name = name
         self.fns = fns
-        self.protofns = registerFns(ns, fns)
+        self.protofns = registerFns(ns, fns) # a dict of fn names to ProtocolFns.
         self.__name__ = name
         self.implementors = set()
-        
-    def markImplementor(self, tp):
-        if tp in self.implementors:
-            return
-            
-        self.implementors.add(tp)
-        
-    def extendForType(self, tp, mp):
-        """Extends this protocol for the given type and the given map of methods
-           mp should be a map of methodnames: functions"""
-       
+
+    def markImplementor(self, cls):
+        """Add a class to the list of implementors.
+        """
+        self.implementors.add(cls)
+
+    def extendForType(self, cls, mp):
+        """Extend this protocol for the given type and the given map of methods.
+
+        mp should be a map of methodnames: functions.
+        """
         for x in mp:
             name =  RT.name(x.sym)
             if name not in self.protofns:
                 raise ProtocolException("No Method found for name " + x)
-            
             fn = self.protofns[name]
-            fn.extend(tp, mp[x])
+            fn.extend(cls, mp[x])
+        self.markImplementor(cls)
 
-        self.markImplementor(tp)
-                
-    def isExtendedBy(self, tp):
-        return tp in self.implementors
-        
+    def isExtendedBy(self, cls):
+        """Check whether a class extends a protocol.
+        """
+        return cls in self.implementors
+
     def __repr__(self):
         return "Protocol<" + self.name + ">"
-        
-        
-        
+
+
 def registerFns(ns, fns):
-    ns = Namespace(ns)
+    """Return a dict of function names to ProtocolFns in a given namespace.
+
+    For each function name, resolve it in the given namespace, creating and
+    adding a new ProtocolFn if needed.
+    """
     protofns = {}
     for fn in fns:
-        fname = ns.__name__ + fn
         if hasattr(ns, fn):
             proto = getattr(ns, fn)
         else:
+            fname = ns.__name__ + fn
             proto = ProtocolFn(fname)
             setattr(ns, fn, proto)
         proto.__name__ = fn
         protofns[fn] = proto
-        
     return protofns
-    
-def extend(np, *args):
-    for x in range(0, len(args), 2):
-        tp = args[x]
-        proto = getExactProtocol(tp)
-        if not proto:
-            raise ProtocolExeception("Expected protocol, got {0}".format(x))
-        if x + 1 >= len(args):
-            raise ProtocolExeception("Expected even number of forms to extend")
-        
-        proto.extendForType(np, args[x + 1])
-        
-                
-        
-        
-def getExactProtocol(tp):
-    if hasattr(tp, "__exactprotocol__") \
-       and hasattr(tp, "__exactprotocolclass__") \
-       and tp.__exactprotocolclass__ is tp:
-           return tp.__exactprotocol__
-    return None
-        
-def protocolFromType(ns, tp):
-    """Considers the input type to be a prototype for a protocol. Useful for
-    turning abstract classes into protocols"""
-    fns = []    
-    for x in dir(tp):
-        if not x.startswith("_"):
-            fns.append(x)
-            
 
-        
-    thens = Namespace(ns)
-    proto = Protocol(ns, tp.__name__, fns)
-    
-    tp.__exactprotocol__ = proto
-    tp.__exactprotocolclass__ = tp
-    
-    if not hasattr(tp, "__protocols__"):
-        tp.__protocols__ = []
-    tp.__protocols__.append(proto)
-    
-    if not hasattr(thens, tp.__name__):
-        setattr(thens, tp.__name__, proto)
+
+def protocolFromType(ns, cls):
+    """Create a protocol from a class.  Register it to the class and namespace.
+
+    The class used registers the protocol in the __exactprotocol__ field, and
+    the class used (i.e., itself) in the __exactprotocolclass__ type.  The
+    __protocols__ field holds a list of all protocols a class extends.
+
+    Useful for turning abstract classes into protocols.
+    """
+    fns = [fn for fn in dir(cls) if not fn.startswith("_")]
+    proto = Protocol(ns, cls.__name__, fns)
+    cls.__exactprotocol__ = proto
+    cls.__exactprotocolclass__ = cls
+    if not hasattr(cls, "__protocols__"):
+        cls.__protocols__ = []
+    cls.__protocols__.append(proto)
+    if not hasattr(ns, cls.__name__):
+        setattr(ns, cls.__name__, proto)
     return proto
-    
-def extendForAllSubclasses(tp):
-    if not hasattr(tp, "__protocols__"):
-        return
-    
-    for proto in tp.__protocols__:
-        _extendProtocolForAllSubclasses(proto, tp)
-        
-def _extendProtocolForAllSubclasses(proto, tp):
-    extendProtocolForClass(proto, tp)
-    
-    for x in tp.__subclasses__():
-        _extendProtocolForAllSubclasses(proto, x)
-    
 
-def extendForType(interface, tp):
-    if not hasattr(interface, "__protocols__"):
-        return
-    
-    for proto in interface.__protocols__:
-        extendProtocolForClass(proto, tp)
 
-def extendProtocolForClass(proto, tp):
+def getExactProtocol(cls):
+    """Return the protocol defined by a class, if there is one.
+    """
+    if hasattr(cls, "__exactprotocol__") \
+       and hasattr(cls, "__exactprotocolclass__") \
+       and cls.__exactprotocolclass__ is cls:
+           return cls.__exactprotocol__
+
+
+def extendProtocolForClass(proto, cls):
+    """Implicitly extend a class to a protocol using identically named fields.
+    """
     for fn in proto.protofns:
-        
         pfn = proto.protofns[fn]
-        if hasattr(tp, fn):
+        if hasattr(cls, fn):
             try:
-                pfn.extend(tp, getattr(tp, fn))
+                pfn.extend(cls, getattr(cls, fn))
             except AttributeError as e:
                 print "Can't extend, got {0}".format(pfn), type(pfn)
                 raise
-        
-    proto.markImplementor(tp)
+    proto.markImplementor(cls)
+
+
+def _extendProtocolForAllSubclasses(proto, cls):
+    """Implicitly extend a class and all its subclasses to a protocol.
+    """
+    extendProtocolForClass(proto, cls)
+    for x in cls.__subclasses__():
+        _extendProtocolForAllSubclasses(proto, x)
+
+
+def extendForAllSubclasses(cls):
+    """Implicitly extend all subclasses of a class to the protocols it extends.
+    """
+    for proto in getattr(cls, "__protocols__", []):
+        _extendProtocolForAllSubclasses(proto, cls)
+
+
+def extendForType(interface, cls):
+    """Implicitly extend a class to the list of protocols of an interface.
+    """
+    for proto in getattr(interface, "__protocols__", []):
+        extendProtocolForClass(proto, cls)
+
+
+def extend(cls, *args):
+    """Extend a class to a list of protocols.
+    
+    args should be of the form
+        [abstract-class, mapping, abstract-class, mapping, ...]
+    """
+    if len(args) % 2:
+        raise ProtocolException("Expected even number of forms to extend.")
+    for cls_proto, mapping in zip(args[::2], args[1::2]):
+        proto = getExactProtocol(cls_proto)
+        if not proto:
+            raise ProtocolException(
+                "Expected protocol, got {0}".format(cls_proto))
+        proto.extendForType(cls, mapping)
 
