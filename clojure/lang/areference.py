@@ -1,6 +1,4 @@
 from clojure.lang.ireference import IReference
-from clojure.lang.cons import Cons
-import clojure.lang.rt as RT
 from clojure.lang.iprintable import IPrintable
 
 class AReference(IReference, IPrintable):

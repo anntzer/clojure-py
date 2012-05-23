@@ -8,7 +8,6 @@ from clojure.lang.iseq import ISeq
 from clojure.lang.aseq import ASeq
 from clojure.lang.ireduce import IReduce
 from clojure.lang.counted import Counted
-from clojure.lang.seqable import Seqable
 from clojure.lang.sequential import Sequential
 from clojure.lang.iprintable import IPrintable
 from clojure.lang.ipersistentlist import IPersistentList

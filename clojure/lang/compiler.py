@@ -1,12 +1,12 @@
 import __builtin__
 import dis
+import fractions
 import marshal
-import pickle
 import py_compile
 import re
 import sys
 import time
-import fractions
+import types
 
 from clojure.lang.cons import Cons
 from clojure.lang.cljexceptions import CompilerException, AbstractMethodCall
@@ -14,7 +14,6 @@ from clojure.lang.cljkeyword import Keyword
 from clojure.lang.ipersistentvector import IPersistentVector
 from clojure.lang.ipersistentmap import IPersistentMap
 from clojure.lang.ipersistentset import IPersistentSet
-from clojure.lang.ipersistentlist import IPersistentList
 from clojure.lang.iseq import ISeq
 from clojure.lang.lispreader import _AMP_, LINE_KEY, garg
 from clojure.lang.namespace import Namespace, findNS, findItem, intern
@@ -25,8 +24,6 @@ from clojure.lang.symbol import Symbol
 from clojure.lang.var import Var, threadBindings
 from clojure.util.byteplay import *
 import clojure.util.byteplay as byteplay
-import marshal
-import types
 
 _MACRO_ = Keyword("macro")
 _NS_ = Symbol("*ns*")

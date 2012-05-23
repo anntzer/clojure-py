@@ -7,7 +7,7 @@ import unicodedata
 
 from clojure.lang.cljexceptions import ReaderException, IllegalStateException
 from clojure.lang.cljkeyword import Keyword, TAG_KEY, T, LINE_KEY
-from clojure.lang.fileseq import FileSeq, MutatableFileSeq, StringReader
+from clojure.lang.fileseq import StringReader
 from clojure.lang.globals import currentCompiler
 from clojure.lang.ipersistentlist import IPersistentList
 from clojure.lang.ipersistentvector import IPersistentVector
@@ -17,7 +17,6 @@ from clojure.lang.ipersistentcollection import IPersistentCollection
 from clojure.lang.iseq import ISeq
 from clojure.lang.persistenthashmap import EMPTY as EMPTY_MAP
 from clojure.lang.persistentvector import EMPTY as EMPTY_VECTOR
-import clojure.lang.persistenthashset
 from clojure.lang.persistenthashset import createWithCheck
 import clojure.lang.rt as RT
 from clojure.lang.symbol import Symbol

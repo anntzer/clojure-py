@@ -2,9 +2,9 @@
 Tuesday, March 20 2012
 """
 
-from aref import ARef
-from cljexceptions import ArityException
-from atomicreference import AtomicReference
+from .aref import ARef
+from .cljexceptions import ArityException
+from .atomicreference import AtomicReference
 
 
 class Atom(ARef):

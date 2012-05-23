@@ -5,12 +5,10 @@ March 25, 2012 -- documented
 import cStringIO
 
 import clojure.lang.rt as RT
-from clojure.lang.iobj import IObj
 from clojure.lang.iprintable import IPrintable
 from clojure.lang.indexableseq import IndexableSeq
 from clojure.lang.ipersistentset import IPersistentSet
 from clojure.lang.ipersistentvector import IPersistentVector
-from clojure.lang.cljexceptions import AbstractMethodCall, ArityException
 from clojure.lang.cljexceptions import IndexOutOfBoundsException
 
 class APersistentVector(IPersistentVector, IPrintable):

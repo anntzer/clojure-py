@@ -7,7 +7,7 @@ from clojure.lang.comparator import Comparator
 from clojure.lang.threadutil import AtomicInteger
 from clojure.lang.iseq import ISeq
 # I don't like * either, but this should be fine
-from pytypes import *
+from .pytypes import *
 
 
 mapInter = map

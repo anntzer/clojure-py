@@ -44,11 +44,11 @@
          (cons 'fn* decl)))
 
 (def
- ^{:arglists '(^clojure.lang.ISeq [coll])
+ ^{:arglists '(^clojure.lang.iseq/ISeq [coll])
    :doc "Returns a seq on the collection. If the collection is empty, returns
   nil.  (seq nil) returns nil. seq also works on Strings, native Python lists
   and any objects that implement __getitem__."
-   :tag clojure.lang.ISeq
+   :tag clojure.lang.iseq/ISeq
    :added "1.0"
    :static true}
  seq (fn seq [coll] (. clojure.lang.rt (seq coll))))
@@ -115,7 +115,7 @@
 
 (def
  ^{:arglists '([coll])
-   :tag clojure.lang.ISeq
+   :tag clojure.lang.iseq/ISeq
    :doc "Returns a seq of the items after the first. Calls seq on its argument.
   If there are no more items, returns nil."
    :added "1.0"
@@ -130,7 +130,7 @@
 
 (def
  ^{:arglists '([coll])
-   :tag clojure.lang.ISeq
+   :tag clojure.lang.iseq/ISeq
    :doc "Returns a possibly empty seq of the items after the first. Calls seq
   on its argument."
    :added "1.0"
@@ -1302,7 +1302,7 @@
   "Returns true if coll implements Sequential"
   {:added "1.0"
    :static true}
-  [coll] (instance? clojure.lang/Sequential coll))
+  [coll] (instance? clojure.lang.sequential/Sequential coll))
 
 (defn count
   "Returns the number of items in the collection. (count nil) returns 0.  Also

@@ -1,7 +1,3 @@
-from clojure.lang.namespace import Namespace
-import clojure.lang.rt as RT
-
-
 class ProtocolException(Exception):
     pass
 
@@ -82,7 +78,7 @@ class Protocol(object):
         mp should be a map of methodnames: functions.
         """
         for x in mp:
-            name =  RT.name(x.sym)
+            name = x.getName()
             if name not in self.protofns:
                 raise ProtocolException("No Method found for name " + x)
             fn = self.protofns[name]

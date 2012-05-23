@@ -1,5 +1,6 @@
 from clojure.lang.aseq import ASeq
-from clojure.lang.cljexceptions import IllegalAccessError, ArityException, InvalidArgumentException
+from clojure.lang.cljexceptions import (IllegalAccessError,
+                                        InvalidArgumentException)
 
 def isReader(rdr):
     return hasattr(rdr, "read") and hasattr(rdr, "tell")

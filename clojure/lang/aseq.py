@@ -7,14 +7,11 @@ import cStringIO
 import clojure.lang.rt as RT
 from clojure.lang.obj import Obj
 from clojure.lang.iseq import ISeq
-from clojure.lang.counted import Counted
 from clojure.lang.ihasheq import IHashEq
 from clojure.lang.iterable import Iterable
 from clojure.lang.iprintable import IPrintable
 from clojure.lang.sequential import Sequential
-from clojure.lang.ipersistentmap import IPersistentMap
 from clojure.lang.ipersistentset import IPersistentSet
-from clojure.lang.cljexceptions import AbstractMethodCall
 
 
 class ASeq(Obj, Sequential, ISeq, IHashEq, Iterable, IPrintable):
