@@ -2,7 +2,6 @@
 March 25, 2012 -- documented
 """
 
-import clojure.lang.rt as RT
 from clojure.lang.obj import Obj
 from clojure.lang.iseq import ISeq
 from clojure.lang.aseq import ASeq
@@ -12,6 +11,8 @@ from clojure.lang.sequential import Sequential
 from clojure.lang.iprintable import IPrintable
 from clojure.lang.ipersistentlist import IPersistentList
 from clojure.lang.cljexceptions import ArityException, IllegalStateException
+
+from .. import protocols
 
 
 class PersistentList(ASeq, IPersistentList, IReduce, Counted):
@@ -179,8 +180,8 @@ class EmptyList(Obj, IPersistentList, ISeq, Counted, IPrintable):
         * other contains no items
 
         Else return False."""
-        return isinstance(other, (Sequential, list, tuple)) \
-            and RT.protocols.seq(other) == None
+        return (isinstance(other, (Sequential, list, tuple)) and
+                protocols.seq(other) is None)
 
     def __ne__(self, other):
         """Return not self.__eq__(other).

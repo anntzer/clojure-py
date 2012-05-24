@@ -4,12 +4,13 @@ March 25, 2012 -- documented
 
 import cStringIO
 
-import clojure.lang.rt as RT
 from clojure.lang.iprintable import IPrintable
 from clojure.lang.indexableseq import IndexableSeq
 from clojure.lang.ipersistentset import IPersistentSet
 from clojure.lang.ipersistentvector import IPersistentVector
 from clojure.lang.cljexceptions import IndexOutOfBoundsException
+
+from .. import protocols
 
 class APersistentVector(IPersistentVector, IPrintable):
     """Pseudo-Abstract class to define a persistent vector.
@@ -46,10 +47,10 @@ class APersistentVector(IPersistentVector, IPrintable):
         ASeq.__eq__ is actually used."""
         if self is other:
             return True
-        if not RT.isSeqable(other) or isinstance(other, IPersistentSet):
+        if not protocols.seq.isExtendedBy(type(other)) or isinstance(other, IPersistentSet):
             return False
         s = self.seq()
-        o = RT.seq(other)
+        o = protocols.seq(other)
         return s == o
 
     def __hash__(self):
@@ -79,7 +80,7 @@ class APersistentVector(IPersistentVector, IPrintable):
         writer.write("[")
         s = self.seq()
         while s is not None:
-            RT.protocols.writeAsString(s.first(), writer)
+            protocols.writeAsString(s.first(), writer)
             if s.next() is not None:
                 writer.write(" ")
             s = s.next()
@@ -95,7 +96,7 @@ class APersistentVector(IPersistentVector, IPrintable):
         writer.write("[")
         s = self.seq()
         while s is not None:
-            RT.protocols.writeAsReplString(s.first(), writer)
+            protocols.writeAsReplString(s.first(), writer)
             if s.next() is not None:
                 writer.write(" ")
             s = s.next()

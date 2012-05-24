@@ -2,12 +2,13 @@
 March 25, 2012 -- documented
 """
 
-import clojure.lang.rt as RT
 from clojure.lang.atomicreference import AtomicReference
 from clojure.lang.apersistentvector import APersistentVector
 from clojure.lang.cljexceptions import (ArityException,
                                         IllegalStateException,
                                         IndexOutOfBoundsException)
+
+from .. import protocols
 
 
 # Acts sort-of-like supplied-p in Common Lisp.
@@ -318,11 +319,11 @@ def vec(seq):
     contain the items in seq."""
     if isinstance(seq, APersistentVector):
         return seq
-    s = RT.seq(seq)
+    s = protocols.seq(seq)
     v = EMPTY
     while s is not None:
-        v = v.cons(RT.first(s))
-        s = RT.next(s)
+        v = v.cons(protocols.first(s))
+        s = protocols.next(s)
     return v
 
 

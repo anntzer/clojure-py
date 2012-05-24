@@ -1,7 +1,8 @@
 from clojure.lang.cljexceptions import (AbstractMethodCall,
                                            InvalidArgumentException)
 from clojure.lang.mapentry import MapEntry
-import clojure.lang.rt as RT
+
+from .. import protocols
 
 
 def hashCombine(hash, seed):#FIXME - unused argument?
@@ -21,7 +22,7 @@ def conjToAssoc(self, o):
             raise InvalidArgumentException("Vector arg must be a pair")
         return self.assoc(o[0], o[1])
 
-    s = RT.seq(o)
+    s = protocols.seq(o)
     map = self
     for s in s.interator():
         m = s.first()

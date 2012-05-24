@@ -4,7 +4,6 @@ March 25, 2012 -- documented
 
 import cStringIO
 
-import clojure.lang.rt as RT
 from clojure.lang.obj import Obj
 from clojure.lang.iseq import ISeq
 from clojure.lang.ihasheq import IHashEq
@@ -12,17 +11,18 @@ from clojure.lang.iterable import Iterable
 from clojure.lang.iprintable import IPrintable
 from clojure.lang.sequential import Sequential
 from clojure.lang.ipersistentset import IPersistentSet
+from .. import protocols
 
 
 class ASeq(Obj, Sequential, ISeq, IHashEq, Iterable, IPrintable):
     def __eq__(self, other):
         if self is other:
             return True
-        if not RT.isSeqable(other) or isinstance(other, IPersistentSet):
+        if not protocols.seq.isExtendedBy(type(other)) or isinstance(other, IPersistentSet):
             return False
-        se = RT.seq(other)
+        se = protocols.seq(other)
         # XXX: don't think this is used
-        # if isinstance(se, RT.NotSeq):
+        # if isinstance(se, protocols.NotSeq):
         #     print other, type(other)
         #     return False
         ms = self.seq()
@@ -136,7 +136,7 @@ class ASeq(Obj, Sequential, ISeq, IHashEq, Iterable, IPrintable):
         writer.write("(")
         s = self
         while s is not None:
-            RT.protocols.writeAsString(s.first(), writer)
+            protocols.writeAsString(s.first(), writer)
             if s.next() is not None:
                 writer.write(" ")
             s = s.next()
@@ -152,7 +152,7 @@ class ASeq(Obj, Sequential, ISeq, IHashEq, Iterable, IPrintable):
         writer.write("(")
         s = self
         while s is not None:
-            RT.protocols.writeAsReplString(s.first(), writer)
+            protocols.writeAsReplString(s.first(), writer)
             if s.next() is not None:
                 writer.write(" ")
             s = s.next()

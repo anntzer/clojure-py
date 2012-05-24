@@ -4,12 +4,13 @@ March 25, 2012 -- documented
 
 import cStringIO
 
-import clojure.lang.rt as RT
 from clojure.lang.ifn import IFn
 from clojure.lang.iprintable import IPrintable
 from clojure.lang.apersistentmap import createKeySeq
 from clojure.lang.ipersistentset import IPersistentSet
 from clojure.lang.cljexceptions import ArityException
+
+from .. import protocols
 
 
 class APersistentSet(IPersistentSet, IFn, IPrintable):
@@ -103,7 +104,7 @@ class APersistentSet(IPersistentSet, IFn, IPrintable):
         writer.write("#{")
         s = self.seq()
         while s is not None:
-            RT.protocols.writeAsString(s.first(), writer)
+            protocols.writeAsString(s.first(), writer)
             if s.next() is not None:
                 writer.write(" ")
             s = s.next()
@@ -119,7 +120,7 @@ class APersistentSet(IPersistentSet, IFn, IPrintable):
         writer.write("#{")
         s = self.seq()
         while s is not None:
-            RT.protocols.writeAsReplString(s.first(), writer)
+            protocols.writeAsReplString(s.first(), writer)
             if s.next() is not None:
                 writer.write(" ")
             s = s.next()

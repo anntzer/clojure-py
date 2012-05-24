@@ -134,7 +134,9 @@ def read1(rdr):
     rdr.next()
     if rdr is None:
         return ""
-    return rdr.first()
+    ch = rdr.first()
+    import inspect
+    return ch
 
 
 def isMacro(c):
@@ -530,6 +532,7 @@ def vectorReader(rdr, leftbracket):
     lst = readDelimitedList(']', rdr, True)
     lst = apply(RT.vector, lst)
     return lst
+
 
 def mapReader(rdr, leftbrace):
     """Read and return a possibly empty map {} from rdr.
