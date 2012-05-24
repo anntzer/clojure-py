@@ -14,7 +14,6 @@ from clojure.lang.ipersistentvector import IPersistentVector
 from clojure.lang.ipersistentmap import IPersistentMap
 from clojure.lang.ipersistentset import IPersistentSet
 from clojure.lang.ipersistentcollection import IPersistentCollection
-from clojure.lang.iseq import ISeq
 from clojure.lang.persistenthashmap import EMPTY as EMPTY_MAP
 from clojure.lang.persistentvector import EMPTY as EMPTY_VECTOR
 from clojure.lang.persistenthashset import createWithCheck
@@ -22,17 +21,13 @@ import clojure.lang.rt as RT
 from clojure.lang.symbol import Symbol
 from clojure.lang.var import Var, threadBindings
 import clojure.lang.namespace as namespace
+from ..protocols import ISeq
 
 _AMP_ = Symbol("&")
 _FN_ = Symbol("fn")
 _VAR_ = Symbol("var")
 _APPLY_ = Symbol("apply")
 _DEREF_ = Symbol("deref")
-_HASHMAP_ = Symbol("clojure.core", "hashmap")
-_CONCAT_ = Symbol("clojure.core", "concat")
-_LIST_ = Symbol("clojure.core", "list")
-_SEQ_ = Symbol("clojure.core", "seq")
-_VECTOR_ = Symbol("clojure.core", "vector")
 _QUOTE_ = Symbol("quote")
 _SYNTAX_QUOTE_ = Symbol("`")
 _UNQUOTE_ = Symbol("~")
@@ -927,6 +922,12 @@ def isUnquoteSplicing(form):
 
 
 class SyntaxQuoteReader(object):
+    _HASHMAP_ = Symbol("clojure.core", "hashmap")
+    _CONCAT_ = Symbol("clojure.core", "concat")
+    _LIST_ = Symbol("clojure.core", "list")
+    _SEQ_ = Symbol("clojure.core", "seq")
+    _VECTOR_ = Symbol("clojure.core", "vector")
+
     def __call__(self, r, backquote):
         with threadBindings(RT.map(GENSYM_ENV, EMPTY_MAP)):
             self.rdr = r
@@ -979,15 +980,23 @@ class SyntaxQuoteReader(object):
             elif isinstance(form, IPersistentCollection):
                 if isinstance(form, IPersistentMap):
                     keyvals = self.flattenMap(form)
-                    ret = RT.list(_APPLY_, _HASHMAP_, RT.list(RT.cons(_CONCAT_, self.sqExpandList(keyvals.seq()))))
+                    ret = RT.list(_APPLY_,
+                                  self._HASHMAP_,
+                                  RT.list(RT.cons(self._CONCAT_,
+                                                  self.sqExpandList(keyvals.seq()))))
                 elif isinstance(form, (IPersistentVector, IPersistentSet)):
-                    ret = RT.list(_APPLY_, _VECTOR_, RT.list(_SEQ_, RT.cons(_CONCAT_, self.sqExpandList(form.seq()))))
+                    ret = RT.list(_APPLY_,
+                                  self._VECTOR_,
+                                  RT.list(self._SEQ_,
+                                          RT.cons(self._CONCAT_,
+                                                  self.sqExpandList(form.seq()))))
                 elif isinstance(form, (ISeq, IPersistentList)):
                     seq = form.seq()
                     if seq is None:
-                        ret = RT.cons(_LIST_, None)
+                        ret = RT.cons(self._LIST_, None)
                     else:
-                        ret = RT.list(_SEQ_, RT.cons(_CONCAT_, self.sqExpandList(seq)))
+                        ret = RT.list(self._SEQ_,
+                                      RT.cons(self._CONCAT_, self.sqExpandList(seq)))
                 else:
                     raise IllegalStateException("Unknown collection type")
             elif isinstance(form, (int, float, str, Keyword)):
@@ -1005,11 +1014,11 @@ class SyntaxQuoteReader(object):
         while seq is not None:
             item = seq.first()
             if isUnquote(item):
-                ret = ret.cons(RT.list(_LIST_, item.next().first()))
+                ret = ret.cons(RT.list(self._LIST_, item.next().first()))
             elif isUnquoteSplicing(item):
                 ret = ret.cons(item.next().first())
             else:
-                ret = ret.cons(RT.list(_LIST_, self.syntaxQuote(item)))
+                ret = ret.cons(RT.list(self._LIST_, self.syntaxQuote(item)))
             seq = seq.next()
         return ret.seq()
 

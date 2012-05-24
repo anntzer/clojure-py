@@ -1,3 +1,6 @@
+from .. import protocols
+
+
 class ProtocolException(Exception):
     pass
 
@@ -11,10 +14,11 @@ class ProtocolFn(object):
     __call__.
     """
 
-    def __init__(self, fname):
-        self.dispatchTable = {}
+    def __init__(self, protocol, fname):
+        self.protocol = protocol
         self.name = intern(fname)
         self.attrname = intern("__proto__" + self.name)
+        self.dispatchTable = {}
         self.default = None
 
     def extend(self, cls, fn):
@@ -39,78 +43,85 @@ class ProtocolFn(object):
     def __call__(self, *args):
         """Dispatch a function call on the class of the first argument.
         """
-        x = type(args[0])
+        cls = type(args[0])
         try:
-            fn = getattr(x, self.attrname)
+            fn = getattr(cls, self.attrname)
         except AttributeError:
-            fn = self.dispatchTable.get(x, self.default)
+            fn = self.dispatchTable.get(cls, self.default)
         if fn:
             return fn(*args) # exceptions raised by fn will propagate.
         raise ProtocolException("{0} not extended to handle: {1}"
-                                .format(self.name, x))
+                                .format(self, cls))
 
     def __repr__(self):
-        return "ProtocolFn<" + self.name + ">"
+        return "<ProtocolFn {0}.{1}>".format(self.protocol.__name__, self.name)
 
 
-class Protocol(object):
-    """A collection of ProtocolFns.
+class ProtocolMeta(type):
+    """Metaclass of Protocols: non-instantiatable classes that override
+    is{instance,subclass}.
     """
 
-    def __init__(self, ns, name, fns):
-        """Define a protocol in a given ns with given name and functions names.
-        """
-        self.ns = ns
-        self.name = name
-        self.fns = fns
-        self.protofns = registerFns(ns, fns) # a dict of fn names to ProtocolFns.
-        self.__name__ = name
-        self.implementors = set()
+    def __call__(self):
+        raise ProtocolException("Protocols are not instantiatable.")
 
-    def markImplementor(self, cls):
-        """Add a class to the list of implementors.
-        """
-        self.implementors.add(cls)
+    def __instancecheck__(self, obj):
+        return any(c in self.implementors for c in type(obj).__mro__)
 
-    def extendForType(self, cls, mp):
-        """Extend this protocol for the given type and the given map of methods.
-
-        mp should be a map of methodnames: functions.
-        """
-        for x in mp:
-            name = x.getName()
-            if name not in self.protofns:
-                raise ProtocolException("No Method found for name " + x)
-            fn = self.protofns[name]
-            fn.extend(cls, mp[x])
-        self.markImplementor(cls)
-
-    def isExtendedBy(self, cls):
-        """Check whether a class extends a protocol.
-        """
-        return cls in self.implementors
+    def __subclasscheck__(self, cls):
+        return any(c in self.implementors for c in cls.__mro__)
 
     def __repr__(self):
-        return "Protocol<" + self.name + ">"
+        return "<Protocol {0}>".format(self.__name__)
 
 
-def registerFns(ns, fns):
-    """Return a dict of function names to ProtocolFns in a given namespace.
+def makeProtocol(ns, name, fns):
+    """Define a protocol in a given ns with given name and functions names.
 
     For each function name, resolve it in the given namespace, creating and
-    adding a new ProtocolFn if needed.
+    adding a new ProtocolFn if needed, and register it to protofns.
     """
-    protofns = {}
+
+    class Protocol(object):
+        """A collection of ProtocolFns.
+        """
+
+        __metaclass__ = ProtocolMeta
+        protofns = {} # a dict of fn names to ProtocolFns.
+        implementors = set()
+
+        @classmethod
+        def markImplementor(self, cls):
+            """Add a class to the list of implementors.
+            """
+            self.implementors.add(cls)
+
+        @classmethod
+        def extendForType(self, cls, mp):
+            """Extend this protocol for the given type and the given map of methods.
+
+            mp should be a map of methodnames: functions.
+            """
+            for meth_name in mp:
+                name = meth_name.getName()
+                if name not in self.protofns:
+                    raise ProtocolException("No Method found for name " + x)
+                fn = self.protofns[name]
+                fn.extend(cls, mp[meth_name])
+            self.markImplementor(cls)
+
+    Protocol.__name__ = name
+
     for fn in fns:
         if hasattr(ns, fn):
             proto = getattr(ns, fn)
         else:
-            fname = ns.__name__ + fn
-            proto = ProtocolFn(fname)
+            proto = ProtocolFn(Protocol, fn)
             setattr(ns, fn, proto)
         proto.__name__ = fn
-        protofns[fn] = proto
-    return protofns
+        Protocol.protofns[fn] = proto
+
+    return Protocol
 
 
 def protocolFromType(ns, cls):
@@ -118,12 +129,12 @@ def protocolFromType(ns, cls):
 
     The class used registers the protocol in the __exactprotocol__ field, and
     the class used (i.e., itself) in the __exactprotocolclass__ type.  The
-    __protocols__ field holds a list of all protocols a class extends.
+    __protocols__ field holds a list of all protocols a class defines.
 
     Useful for turning abstract classes into protocols.
     """
     fns = [fn for fn in dir(cls) if not fn.startswith("_")]
-    proto = Protocol(ns, cls.__name__, fns)
+    proto = makeProtocol(ns, cls.__name__, fns)
     cls.__exactprotocol__ = proto
     cls.__exactprotocolclass__ = cls
     if not hasattr(cls, "__protocols__"):
@@ -134,37 +145,52 @@ def protocolFromType(ns, cls):
     return proto
 
 
+def asProtocol(ns=protocols):
+    """protocolFromType as a class decorator.
+    """
+    def decorator(cls):
+        protocolFromType(ns, cls)
+        return cls
+    return decorator
+
+
 def getExactProtocol(cls):
     """Return the protocol defined by a class, if there is one.
     """
-    if hasattr(cls, "__exactprotocol__") \
-       and hasattr(cls, "__exactprotocolclass__") \
-       and cls.__exactprotocolclass__ is cls:
+    if (hasattr(cls, "__exactprotocol__")
+        and hasattr(cls, "__exactprotocolclass__")
+        and cls.__exactprotocolclass__ is cls):
            return cls.__exactprotocol__
 
 
 def extendProtocolForClass(proto, cls):
-    """Implicitly extend a class to a protocol using identically named fields.
+    """Implicitly extend a protocol to a class using identically named fields.
     """
     for fn in proto.protofns:
         pfn = proto.protofns[fn]
         if hasattr(cls, fn):
-            try:
-                pfn.extend(cls, getattr(cls, fn))
-            except AttributeError as e:
-                print "Can't extend, got {0}".format(pfn), type(pfn)
-                raise
+            pfn.extend(cls, getattr(cls, fn))
     proto.markImplementor(cls)
 
 
+def extends(*args):
+    """Decorator for a class implicitely extending a list of protocols."""
+    def decorator(cls):
+        for protocol in args:
+            extendProtocolForClass(protocol, cls)
+        return cls
+    return decorator
+
+
 def _extendProtocolForAllSubclasses(proto, cls):
-    """Implicitly extend a class and all its subclasses to a protocol.
+    """Implicitly extend a protocol to a class and all its subclasses.
     """
     extendProtocolForClass(proto, cls)
     for x in cls.__subclasses__():
         _extendProtocolForAllSubclasses(proto, x)
 
 
+# XXX remove
 def extendForAllSubclasses(cls):
     """Implicitly extend all subclasses of a class to the protocols it extends.
     """
@@ -172,15 +198,16 @@ def extendForAllSubclasses(cls):
         _extendProtocolForAllSubclasses(proto, cls)
 
 
+# XXX remove
 def extendForType(interface, cls):
-    """Implicitly extend a class to the list of protocols of an interface.
+    """Implicitly extend the list of protocols of an interface to a class.
     """
     for proto in getattr(interface, "__protocols__", []):
         extendProtocolForClass(proto, cls)
 
 
 def extend(cls, *args):
-    """Extend a class to a list of protocols.
+    """Extend a list of protocols to a class.
     
     args should be of the form
         [abstract-class, mapping, abstract-class, mapping, ...]

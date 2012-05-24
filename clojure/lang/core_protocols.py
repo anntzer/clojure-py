@@ -3,6 +3,9 @@
 Taken from ClojureScript's source.
 """
 
+from .protocol import makeProtocol
+from .. import protocols as protocols_namespace
+
 # Store all protocols 
 CLJS_PROTOCOLS = dict(
     IAssociative=["contains-key?", "assoc"],
@@ -45,7 +48,7 @@ CLJS_PROTOCOLS = dict(
     IWithMeta=["with-meta"],
 )
 
-CLJP_PROTOCOLS = dict(
+CLJP_PROTOCOLS = dict( # XXX incomplete
     IDeref=["deref"],
     IEditableCollection=["asTransient"],
     IFn=["__call__"],
@@ -56,22 +59,22 @@ CLJP_PROTOCOLS = dict(
     IObj=["withMeta"],
     IPersistentCollection=["count", "cons", "empty"], # Sequable
     IPersistentList=[], # Sequential, IPersisitentStack
-    IPersistentMap=["without"] # Iterable, Associative, Counted
-    IPersistentSet=["disjoin"] # IPersistentCollection, Counted
-    IPersistentStack=["peek", "pop"] # IPersistentCollection
+    IPersistentMap=["without"], # Iterable, Associative, Counted
+    IPersistentSet=["disjoin"], # IPersistentCollection, Counted
+    IPersistentStack=["peek", "pop"], # IPersistentCollection
     IPersistentVector=["__len__", "assocN", "cons"], # Associative, Sequential, IPersistentStack, Reversible, Indexed)
     IPrintable=["writeAsString", "writeAsReplString"],
     IReduce=["reduce"],
     IReference=["alterMeta", "resetMeta"], # IMeta
     IRef=["setValidator", "getValidator", "getWatches", "addWatch", "removeWatch"], # IDeref
-    ISeq=["first", "rest"],
+    ISeq=["first", "next", "more", "cons"],
     Iterable=["__iter__"],
     ITransientAssociative=["assoc"], # ITransientCollection, ILookup
     ITransientCollection=["conj", "persistent"],
     ITransientMap=["assoc", "without", "persistent"], # ITransientCollection, Counted
-) # and others
+) # and others...
 
-PROTOCOLS = CLJS_PROTOCOLS
+PROTOCOLS = CLJP_PROTOCOLS
 
 def make_protocolfn(fname):
     def protocolfn(*args):
@@ -79,6 +82,9 @@ def make_protocolfn(fname):
     protocolfn.__name__ = fname
     return protocolfn
 
-for pname, fnames in PROTOCOLS.items():
-    globals()[pname] = type(pname, (object,),
-                            {fname: make_protocolfn(fname) for fname in fnames})
+def init(protocols):
+    for pname, fnames in protocols.items():
+        setattr(protocols_namespace, pname,
+                makeProtocol(protocols_namespace, pname, fnames))
+
+init(PROTOCOLS)

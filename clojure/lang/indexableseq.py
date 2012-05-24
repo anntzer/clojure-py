@@ -1,6 +1,10 @@
 from clojure.lang.aseq import ASeq
 from clojure.lang.counted import Counted
+from . import protocol
+from ..protocols import ISeq, Seqable
 
+
+@protocol.extends(ISeq, Seqable)
 class IndexableSeq(ASeq, Counted, object):
     def __init__(self, array, i):
         self.array = array

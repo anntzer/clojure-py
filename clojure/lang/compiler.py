@@ -14,7 +14,6 @@ from clojure.lang.cljkeyword import Keyword
 from clojure.lang.ipersistentvector import IPersistentVector
 from clojure.lang.ipersistentmap import IPersistentMap
 from clojure.lang.ipersistentset import IPersistentSet
-from clojure.lang.iseq import ISeq
 from clojure.lang.lispreader import _AMP_, LINE_KEY, garg
 from clojure.lang.namespace import Namespace, findNS, findItem, intern
 from clojure.lang.persistentlist import PersistentList, EmptyList
@@ -24,6 +23,8 @@ from clojure.lang.symbol import Symbol
 from clojure.lang.var import Var, threadBindings
 from clojure.util.byteplay import *
 import clojure.util.byteplay as byteplay
+
+from ..protocols import ISeq
 
 _MACRO_ = Keyword("macro")
 _NS_ = Symbol("*ns*")
@@ -161,9 +162,9 @@ def compileDef(comp, form):
         code.append((LOAD_CONST, v))
         code.append((LOAD_ATTR, "bindRoot"))
         compiledValue = comp.compile(value)
-        if isinstance(value, ISeq) \
-           and value.first().getName() == 'fn' \
-           and sym.meta() is not None:
+        if (isinstance(value, ISeq) and
+            value.first().getName() == 'fn' and
+            sym.meta() is not None):
             try:
                 compiledValue[0][1].__doc__ = sym.meta()[Keyword('doc')]
             except AttributeError:

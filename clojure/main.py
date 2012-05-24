@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""Main entry point to clojure-py: sets import hook, import clojure.core and
-define main().
+"""Main entry point to clojure-py: sets import hook and define main().
 """
 
 import cPickle
@@ -8,8 +7,10 @@ import imp
 from optparse import OptionParser
 import os.path
 import sys
+sys.setrecursionlimit(300)
 import traceback
 
+from .lang import core_protocols
 from clojure.lang.cljexceptions import NoNamespaceException
 from clojure.lang.compiler import Compiler
 from clojure.lang.fileseq import StringReader
@@ -52,12 +53,12 @@ class MetaImporter(object):
         """
         if name not in sys.modules:
             sys.modules[name] = None # avoids circular imports
-            try:
-                requireClj(self.path)
-            except Exception as exc:
-                del sys.modules[name]
-                traceback.print_exc()
-                raise ImportError("requireClj raised an exception.")
+            #try:
+            requireClj(self.path)
+            #except Exception as exc:
+                #del sys.modules[name]
+                #traceback.print_exc()
+                #raise ImportError("requireClj raised an exception.")
             if sys.modules[name] == None:
                 del sys.modules[name]
                 raise NoNamespaceException(self.path, name)

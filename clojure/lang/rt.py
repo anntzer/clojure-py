@@ -5,11 +5,11 @@ from .cljexceptions import InvalidArgumentException
 from .comparator import Comparator
 from .cons import Cons
 from .ipersistentvector import IPersistentVector
-from .iseq import ISeq
 from .pytypes import *
 from .threadutil import AtomicInteger
 from . import (apersistentmap, apersistentvector,
     persistentlist, persistenthashmap, persistenthashset, persistentvector)
+from .. import protocols
 
 
 mapInter = map
@@ -22,11 +22,11 @@ def setMeta(f, meta):
 
 
 def cons(x, s):
-    if isinstance(s, ISeq):
+    if isinstance(s, protocols.ISeq):
         return Cons(x, s)
     if s is None:
         return persistentlist.EMPTY.cons(x)
-    return Cons(x, seq(s))
+    return Cons(x, protocols.seq(s))
 
 
 def seqToTuple(s):
@@ -44,11 +44,11 @@ class NotSeq(object):
 
 
 def first(obj):
-    return protocols.first(seq(obj))
+    return protocols.first(protocols.seq(obj))
 
 
 def next(obj):
-    return protocols.next(seq(obj))
+    return protocols.next(protocols.seq(obj))
 
 
 def isSeqable(obj):
@@ -179,22 +179,17 @@ def printTo(obj, writer=sys.stdout):
 
 
 def _bootstrap_protocols():
-    global protocols, seq
     from clojure.lang.indexableseq import create as createIndexableSeq
     from clojure.lang.iprintable import IPrintable
-    from clojure.lang.iseq import ISeq
     from clojure.lang.named import Named
-    from clojure.lang.namespace import Namespace
     from clojure.lang.protocol import protocolFromType, extendForAllSubclasses
     from clojure.lang.seqable import Seqable
 
-    protocols = Namespace("clojure.protocols")
+    global seq; seq = protocols.seq
 
-    for protocol in [ISeq, IPrintable, Named, Seqable]:
+    for protocol in [IPrintable, Named, Seqable]:
         protocolFromType(protocols, protocol)
         extendForAllSubclasses(protocol)
-
-    seq = protocols.seq
 
     for typ in [pyTupleType, pyListType, pyStrType, pyUnicodeType]:
         protocols.seq.extend(typ, createIndexableSeq)

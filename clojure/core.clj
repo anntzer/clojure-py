@@ -65,7 +65,7 @@
    :doc "Return true if x implements ISeq"
    :added "1.0"
    :static true}
- seq? (fn seq? [x] (instance? clojure.lang.iseq/ISeq x)))
+ seq? (fn seq? [x] (instance? clojure.protocols/ISeq x)))
 
 (def
  ^{:arglists '([x])
@@ -105,7 +105,7 @@
    :static true}
  first (fn first [s]
          (py/if (py.bytecode/COMPARE_OP "is not" s nil)
-           (py/if (instance? ISeq s)
+           (py/if (seq? s)
              (.first s)
              (let [s (seq s)]
                (py/if (py.bytecode/COMPARE_OP "is not" s nil)
@@ -123,7 +123,7 @@
  next (fn next [s]
         (py/if (is? nil s)
           nil
-          (py/if (instance? ISeq s)
+          (py/if (seq? s)
             (.next s)
             (let [s (seq s)]
               (.next s))))))
@@ -136,7 +136,7 @@
    :added "1.0"
    :static true}
  rest (fn rest [x]
-        (py/if (py/isinstance x ISeq)
+        (py/if (seq? x)
           (.more x)
           (let [s (seq x)]
             (py/if s
@@ -727,13 +727,12 @@
     (py/if (not (nil? sv))
       sv
       s))
-  clojure.lang.iseq/ISeq
   (seq [self]
     (.sval self)
     (when (not (nil? sv))
       (let [ls sv]
         (py/setattr self "sv" nil)
-          (py/setattr self "s"
+        (py/setattr self "s"
           (loop [ls ls]
             (py/if (instance? LazySeq ls)
               (recur (.sval ls))
@@ -794,28 +793,32 @@
     (cons o (.seq self)))
   (empty [self]
     (list))
-    ;; IPrintable protocol
-    ;; These methods realize the entire sequence as Clojure does. But
-    ;; __repr__ does not. Is the intent to prevent spamming the repl?
-    clojure.lang.iprintable/IPrintable
-    (writeAsString [self writer]
-      (.write writer "(")
-      (loop [s (.seq self)]
-      (when s
-        (clojure.protocols/writeAsString (.first s) writer)
-        (when (.next s)
-        (.write writer " "))
-        (recur (.next s))))
-      (.write writer ")"))
-    (writeAsReplString [self writer]
-      (.write writer "(")
-      (loop [s (.seq self)]
-      (when s
-        (clojure.protocols/writeAsReplString (.first s) writer)
-        (when (.next s)
-        (.write writer " "))
-        (recur (.next s))))
-      (.write writer ")")))
+  ;; IPrintable protocol
+  ;; These methods realize the entire sequence as Clojure does. But
+  ;; __repr__ does not. Is the intent to prevent spamming the repl?
+  clojure.lang.iprintable/IPrintable
+  (writeAsString [self writer]
+    (.write writer "(")
+    (loop [s (.seq self)]
+    (when s
+      (clojure.protocols/writeAsString (.first s) writer)
+      (when (.next s)
+      (.write writer " "))
+      (recur (.next s))))
+    (.write writer ")"))
+  (writeAsReplString [self writer]
+    (.write writer "(")
+    (loop [s (.seq self)]
+    (when s
+      (clojure.protocols/writeAsReplString (.first s) writer)
+      (when (.next s)
+      (.write writer " "))
+      (recur (.next s))))
+    (.write writer ")")))
+
+((clojure.lang.protocol/extends clojure.protocols/ISeq
+                                clojure.protocols/Seqable)
+   LazySeq)
 
 (clojure.lang.protocol/extendForAllSubclasses clojure.lang.iseq/ISeq)
 (clojure.lang.protocol/extendForAllSubclasses
@@ -907,6 +910,7 @@
     (if (is? _more nil)
       '()
       _more)))
+((clojure.lang.protocol/extends clojure.protocols/ISeq) ChunkedCons)
 
 (defn chunk-buffer [capacity]
   (ChunkBuffer (py.bytecode/BINARY_MULTIPLY (py/list [nil]) capacity) 0))

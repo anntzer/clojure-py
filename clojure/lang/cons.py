@@ -5,7 +5,11 @@ March 29, 2012 -- documented
 from clojure.lang.aseq import ASeq
 from clojure.lang.cljexceptions import ArityException
 from clojure.lang.persistentlist import EMPTY
+from . import protocol
+from ..protocols import ISeq, Seqable
 
+
+@protocol.extends(ISeq, Seqable)
 class Cons(ASeq):
     def __init__(self, *args):
         """Instantiate a Cons.

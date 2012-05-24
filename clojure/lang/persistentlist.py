@@ -3,7 +3,6 @@ March 25, 2012 -- documented
 """
 
 from clojure.lang.obj import Obj
-from clojure.lang.iseq import ISeq
 from clojure.lang.aseq import ASeq
 from clojure.lang.ireduce import IReduce
 from clojure.lang.counted import Counted
@@ -11,10 +10,11 @@ from clojure.lang.sequential import Sequential
 from clojure.lang.iprintable import IPrintable
 from clojure.lang.ipersistentlist import IPersistentList
 from clojure.lang.cljexceptions import ArityException, IllegalStateException
+from . import protocol
+from ..protocols import ISeq
 
-from .. import protocols
 
-
+@protocol.extends(ISeq)
 class PersistentList(ASeq, IPersistentList, IReduce, Counted):
     def __init__(self, *args):
         """Instantiate a PersistentList.
@@ -163,7 +163,8 @@ def creator(*args):
 # EmptyList
 # ======================================================================
 
-class EmptyList(Obj, IPersistentList, ISeq, Counted, IPrintable):
+@protocol.extends(ISeq)
+class EmptyList(Obj, IPersistentList, Counted, IPrintable):
     """A list of zero objects."""
     def __init__(self, meta=None):
         """This is a psuedo-singleton class, use persistentlist.EMPTY."""

@@ -5,16 +5,19 @@ March 25, 2012 -- documented
 import cStringIO
 
 from clojure.lang.obj import Obj
-from clojure.lang.iseq import ISeq
 from clojure.lang.ihasheq import IHashEq
 from clojure.lang.iterable import Iterable
 from clojure.lang.iprintable import IPrintable
 from clojure.lang.sequential import Sequential
 from clojure.lang.ipersistentset import IPersistentSet
+
+from . import protocol
 from .. import protocols
+from ..protocols import ISeq
 
 
-class ASeq(Obj, Sequential, ISeq, IHashEq, Iterable, IPrintable):
+@protocol.extends(ISeq)
+class ASeq(Obj, Sequential, IHashEq, Iterable, IPrintable):
     def __eq__(self, other):
         if self is other:
             return True
@@ -75,10 +78,6 @@ class ASeq(Obj, Sequential, ISeq, IHashEq, Iterable, IPrintable):
             from clojure.lang.persistentlist import EMPTY
             return EMPTY
         return s
-
-    # def first(self):
-    #     """Raise AbstractMethodCall."""
-    #     raise AbstractMethodCall(self)
 
     def __iter__(self):
         """Return an iterator on this sequence."""
