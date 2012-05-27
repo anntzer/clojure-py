@@ -51,10 +51,6 @@ def next(obj):
     return protocols.next(protocols.seq(obj))
 
 
-def isSeqable(obj):
-    return protocols.seq.isExtendedBy(type(obj))
-
-
 def applyTo(fn, args):
     return apply(fn, tuple(map(lambda x: x.first(), args)))
 

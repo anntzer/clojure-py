@@ -7,12 +7,12 @@ import re
 import unittest
 from cStringIO import StringIO
 
-from clojure.lang.iseq import ISeq
 from clojure.lang.persistenthashset import PersistentHashSet
 from clojure.lang.persistenthashset import create, createWithCheck
 from clojure.lang.persistenthashset import EMPTY_MAP, EMPTY as EMPTY_SET
 from clojure.lang.cljexceptions import (ArityException,
                                         IllegalArgumentException)
+from clojure.protocols import ISeq
 
 uobj = object()
 pseudoMetaData = object()

@@ -35,10 +35,10 @@ class ProtocolFn(object):
     def setDefault(self, fn):
         self.default = fn
 
-    def isExtendedBy(self, cls):
-        """Check whether a given class extends this protocol function.
+    def getExtensionBy(self, cls):
+        """Return the function that extends this protocol function to a class.
         """
-        return hasattr(cls, self.attrname) or cls in self.dispatchTable
+        return getattr(cls, self.attrname, None) or self.dispatchTable.get(cls)
 
     def __call__(self, *args):
         """Dispatch a function call on the class of the first argument.

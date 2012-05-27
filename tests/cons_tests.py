@@ -7,11 +7,11 @@ import re
 import unittest
 from cStringIO import StringIO
 
-from clojure.lang.iseq import ISeq
 from clojure.lang.cons import Cons
 import clojure.lang.persistentlist as pl
 from clojure.lang.persistentlist import EmptyList
 from clojure.lang.cljexceptions import ArityException
+from clojure.protocols import ISeq
 
 uobj = object()
 pseudoMetaData = object()

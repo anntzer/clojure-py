@@ -47,7 +47,8 @@ class APersistentVector(IPersistentVector, IPrintable):
         ASeq.__eq__ is actually used."""
         if self is other:
             return True
-        if not protocols.seq.isExtendedBy(type(other)) or isinstance(other, IPersistentSet):
+        if (not protocols.seq.getExtensionBy(type(other)) or
+            isinstance(other, IPersistentSet)):
             return False
         s = self.seq()
         o = protocols.seq(other)

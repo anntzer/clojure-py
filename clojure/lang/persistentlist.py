@@ -11,6 +11,7 @@ from clojure.lang.iprintable import IPrintable
 from clojure.lang.ipersistentlist import IPersistentList
 from clojure.lang.cljexceptions import ArityException, IllegalStateException
 from . import protocol
+from .. import protocols
 from ..protocols import ISeq
 
 

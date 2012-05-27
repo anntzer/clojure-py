@@ -3,7 +3,7 @@ import unittest
 
 class TestProtocolFunctions(unittest.TestCase):
     def testProtocol(self):
-        z = ProtocolFn("foo")
+        z = ProtocolFn(None, "foo")
         z.extend(int, lambda x: "int")
         z.extend(ProtocolFn, lambda f: "fn")
         z.extend(float, lambda f: "float")

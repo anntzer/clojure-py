@@ -8,11 +8,11 @@ import unittest
 import operator
 from cStringIO import StringIO
 
-from clojure.lang.iseq import ISeq
 import clojure.lang.persistentlist as pl
 from clojure.lang.persistentlist import PersistentList, EmptyList
 from clojure.lang.cljexceptions import (ArityException,
                                         IndexOutOfBoundsException)
+from clojure.protocols import ISeq
 
 uobj = object()
 pseudoMetaData = object()

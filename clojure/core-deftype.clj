@@ -34,8 +34,6 @@
             (map #(prop-wrap name fields %)
                  (vals specs))))
 
-
-
 (defmacro deftype
     [name fields & specs]
     (let [[interfaces methods] (parse-opts+specs specs)
@@ -44,14 +42,13 @@
                       methods
                       (assoc methods "__init__" (clojure.core/make-init fields)))]
           `(~'do (def ~name (py/type ~(.-name name)
-                                      (py/tuple ~(vec (concat interfaces [py/object])))
+                                      (py/tuple ~(vec [py/object]))
                                       (.toDict ~methods)))
-                ~@(map (fn [x] `(clojure.lang.protocol/extendForType ~x ~name))
+                ~@(map (fn [x] `((clojure.lang.protocol/extends ~x) ~name))
                                interfaces))))
 
 (defn abstract-fn [self & args]
     (throw (AbstractMethodCall self)))
-    
 
 (defmacro definterface
     [name & sigs]
@@ -63,25 +60,14 @@
                                       (py/tuple [py/object])
                                       (.toDict ~methods))))))
 
-
 (defmacro defprotocol
-    [name & sigs]
-    (let [docstr (when (string? (first sigs)) (first sigs))
-          sigs (if docstr (next sigs) sigs)
-          methods (zipmap (map #(clojure.core/name (first %)) sigs)
-                          (map #(-> `(~'fn ~(symbol (str name "_" (clojure.core/name (first %))))
-                                      ~@'([self & args]
-                                          (throw (AbstractMethodCall self))))) sigs))
-          methods (assoc methods "__doc__" docstr)]
-         (debug `(do (def ~name (py/type ~(clojure.core/name name)
-                                      (py/tuple [py/object])
-                                      (.toDict ~methods)))
-                     (clojure.lang.protocol/protocolFromType ~'*ns* ~name)
-                ~@(for [s sigs :when (string? (last s))]
-                    `(py/setattr (resolve ~(list 'quote (first s)))
-                                 "__doc__"
-                                 ~(last s)))))))
-
+  [name & sigs]
+  (let [docstr (when (string? (first sigs)) (first sigs))
+        sigs (if docstr (next sigs) sigs)]
+    `(do (def ~name (clojure.lang.protocol/makeProtocol
+                      ~'*ns*
+                      ~(clojure.core/name name)
+                      (map #(str (clojure.core/name (first %))) '~sigs))))))
 
 (defmacro reify 
   "reify is a macro with the following structure:

@@ -72,6 +72,7 @@ CLJP_PROTOCOLS = dict( # XXX incomplete
     ITransientAssociative=["assoc"], # ITransientCollection, ILookup
     ITransientCollection=["conj", "persistent"],
     ITransientMap=["assoc", "without", "persistent"], # ITransientCollection, Counted
+    Sequential=[],
 ) # and others...
 
 PROTOCOLS = CLJP_PROTOCOLS

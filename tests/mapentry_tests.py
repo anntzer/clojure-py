@@ -6,10 +6,10 @@ Wednesday, March 28 2012
 import unittest
 
 import clojure.lang.mapentry as me
-from clojure.lang.iseq import ISeq
 from clojure.lang.apersistentvector import SubVec
 from clojure.lang.persistentvector import PersistentVector
 from clojure.lang.cljexceptions import IndexOutOfBoundsException
+from clojure.protocols import ISeq
 
 
 class TestMapEntry(unittest.TestCase):

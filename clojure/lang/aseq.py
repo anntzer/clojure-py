@@ -13,15 +13,16 @@ from clojure.lang.ipersistentset import IPersistentSet
 
 from . import protocol
 from .. import protocols
-from ..protocols import ISeq
+from ..protocols import ISeq, Seqable
 
 
-@protocol.extends(ISeq)
+@protocol.extends(ISeq, Seqable)
 class ASeq(Obj, Sequential, IHashEq, Iterable, IPrintable):
     def __eq__(self, other):
         if self is other:
             return True
-        if not protocols.seq.isExtendedBy(type(other)) or isinstance(other, IPersistentSet):
+        if (not protocols.seq.getExtensionBy(type(other)) or
+            isinstance(other, IPersistentSet)):
             return False
         se = protocols.seq(other)
         # XXX: don't think this is used

@@ -2,10 +2,10 @@
   (:require clojure.core-deftype)
   (:refer clojure.core-deftype))
 
-(definterface IInitable
+(defprotocol IInitable
     (_init [self]))
 
-(definterface IMultiFn
+(defprotocol IMultiFn
     (reset [self])
     (addMethod [self dispatchVal method])
     (removeMethod [self dispatchVal])

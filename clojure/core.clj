@@ -44,14 +44,14 @@
          (cons 'fn* decl)))
 
 (def
- ^{:arglists '(^clojure.lang.iseq/ISeq [coll])
+ ^{:arglists '(^clojure.protocols/ISeq [coll])
    :doc "Returns a seq on the collection. If the collection is empty, returns
   nil.  (seq nil) returns nil. seq also works on Strings, native Python lists
   and any objects that implement __getitem__."
-   :tag clojure.lang.iseq/ISeq
+   :tag clojure.protocols/ISeq
    :added "1.0"
    :static true}
- seq (fn seq [coll] (. clojure.lang.rt (seq coll))))
+ seq (fn seq [coll] (clojure.lang.rt/seq coll)))
 
 (def
  ^{:arglists '([^Class c x])
@@ -115,7 +115,7 @@
 
 (def
  ^{:arglists '([coll])
-   :tag clojure.lang.iseq/ISeq
+   :tag clojure.protocols/ISeq
    :doc "Returns a seq of the items after the first. Calls seq on its argument.
   If there are no more items, returns nil."
    :added "1.0"
@@ -130,7 +130,7 @@
 
 (def
  ^{:arglists '([coll])
-   :tag clojure.lang.iseq/ISeq
+   :tag clojure.protocols/ISeq
    :doc "Returns a possibly empty seq of the items after the first. Calls seq
   on its argument."
    :added "1.0"
@@ -820,9 +820,7 @@
                                 clojure.protocols/Seqable)
    LazySeq)
 
-(clojure.lang.protocol/extendForAllSubclasses clojure.lang.iseq/ISeq)
-(clojure.lang.protocol/extendForAllSubclasses
- clojure.lang.iprintable/IPrintable)
+(clojure.lang.protocol/extendForAllSubclasses clojure.lang.iprintable/IPrintable)
 
 (def generic-interator-fn
   {:seq (fn generator-seq [self]
@@ -840,12 +838,11 @@
     Seqable
     generic-interator-fn)
 
-(definterface IChunkedSeq []
-  clojure.lang.sequential/Sequential
-  clojure.lang.iseq/ISeq
-  (chunkedFirst [self] nil)
-  (chunkedNext [self] nil)
-  (chunkedMore [self] nil))
+(def IChunkedSeq
+  (clojure.lang.protocol/makeProtocol
+    *ns*
+    "IChunkedSeq"
+    ["chunkedFirst" "chunkedNext" "chunkedMore"]))
 
 (deftype ArrayChunk [array off end]
   (__getitem__
@@ -882,7 +879,6 @@
   (__len__ [self] end))
 
 (deftype ChunkedCons [_meta chunk _more]
-  clojure.lang.aseq/ASeq
   (first [self]
     (py.bytecode/BINARY_SUBSCR chunk 0))
   (withMeta [self meta]
@@ -901,8 +897,8 @@
             '()
           :else
             _more))
-
-  IChunkedSeq
+  (seq [self] self)
+  (__iter__ [self] ((.-im_func (.-__iter__ clojure.lang.aseq/ASeq)) self))
   (chunkedFirst [self] chunk)
   (chunkedNext [self]
     (.seq (.chunkedMore self)))
@@ -910,7 +906,10 @@
     (if (is? _more nil)
       '()
       _more)))
-((clojure.lang.protocol/extends clojure.protocols/ISeq) ChunkedCons)
+((clojure.lang.protocol/extends clojure.protocols/ISeq
+                                clojure.protocols/Seqable
+                                IChunkedSeq)
+   ChunkedCons)
 
 (defn chunk-buffer [capacity]
   (ChunkBuffer (py.bytecode/BINARY_MULTIPLY (py/list [nil]) capacity) 0))
@@ -3264,7 +3263,7 @@
   [protocol atype]
   (let [p (clojure.lang.protocol/getExactProtocol protocol)]
     (if p
-      (.isExtendedBy p atype))
+      (boolean (.getExtensionBy p atype)))
       (py/issubclass protocol atype)))
 
 (defn satisfies?
