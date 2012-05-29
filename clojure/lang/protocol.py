@@ -201,14 +201,10 @@ def extend(cls, *args):
     """Extend a list of protocols to a class.
     
     args should be of the form
-        [abstract-class, mapping, abstract-class, mapping, ...]
+        [protocol, mapping, protocol, mapping, ...]
     """
     if len(args) % 2:
         raise ProtocolException("Expected even number of forms to extend.")
-    for cls_proto, mapping in zip(args[::2], args[1::2]):
-        proto = getExactProtocol(cls_proto)
-        if not proto:
-            raise ProtocolException(
-                "Expected protocol, got {0}".format(cls_proto))
+    for proto, mapping in zip(args[::2], args[1::2]):
         proto.extendForClass(cls, mapping)
 

@@ -706,7 +706,7 @@
     (a/assert-false (if nil true false)))
 
 (deftest defrecord-tests
-    (defrecord FooRecord [x y] IDeref (deref [self] 42))
+    (defrecord FooRecord [x y] clojure.protocols/IDeref (deref [self] 42))
     (let [foo (FooRecord 1 2)]
          (a/assert-equal (:x foo) 1)
          (a/assert-equal (:y foo) 2)
@@ -724,7 +724,7 @@
                              (py/hash foo))))
 
 (deftest extend-tests
-    (extend py/int ISeq {:seq (fn [self] 42)})
+    (extend py/int clojure.protocols/Seqable {:seq (fn [self] 42)})
     (a/assert-equal (seq 1) 42))
 
 (deftest binding-tests
@@ -741,16 +741,12 @@
     (defn baz "This is a test" [] nil)
     (doc baz))
 
-(defprotocol IClosable
-  (__enter__ [self])
-  (__exit__ [self]))
-
 (deftype MutatableCloser [state]
-        IClosable
-        (__enter__ [self]
-            (py/setattr self "state" :enter))
-        (__exit__ [self]
-            (py/setattr self "state" :exit)))
+    py/object
+    (__enter__ [self]
+        (py/setattr self "state" :enter))
+    (__exit__ [self]
+        (py/setattr self "state" :exit)))
 
 (deftest with-open-tests
     (let [mc (MutatableCloser :unknown)]
@@ -797,9 +793,9 @@
                 (a/assert-true (thread-bound? #'unbound))
                 (a/assert-false (thread-bound? #'unbound #'bound))))
 
-(deftest isa?-tests
-        (a/assert-true (isa? ISeq Seqable))
-        (a/assert-false (isa? Seqable ISeq)))
+;(deftest isa?-tests
+        ;(a/assert-true (isa? ISeq Seqable))
+        ;(a/assert-false (isa? Seqable ISeq)))
 
 (defmulti factorial identity)
 

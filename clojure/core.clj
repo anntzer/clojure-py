@@ -831,12 +831,12 @@
               (catch py/StopIteration e nil))))})
 
 (extend clojure.lang.pytypes/pyTypeGenerator
-    Seqable
-    generic-interator-fn)
+  clojure.protocols/Seqable
+  generic-interator-fn)
 
 (extend clojure.lang.pytypes/pyReversedType
-    Seqable
-    generic-interator-fn)
+  clojure.protocols/Seqable
+  generic-interator-fn)
 
 (def IChunkedSeq
   (clojure.lang.protocol/makeProtocol
