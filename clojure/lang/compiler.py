@@ -1454,7 +1454,7 @@ class Compiler(object):
                 return []
             return c
         except:
-            print "Compiling {0}".format(itm)
+            print "Compiling {0:.100}".format(itm)
             raise
 
     def compileNone(self, itm):

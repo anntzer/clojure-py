@@ -7,7 +7,6 @@ import imp
 from optparse import OptionParser
 import os.path
 import sys
-sys.setrecursionlimit(300)
 import traceback
 
 from .lang import core_protocols

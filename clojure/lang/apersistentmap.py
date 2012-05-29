@@ -6,6 +6,7 @@ from clojure.lang.ipersistentvector import IPersistentVector
 from clojure.lang.cljexceptions import (ArityException,
                                         InvalidArgumentException)
 from . import protocol
+from .. import protocols
 from ..protocols import ISeq, Seqable
 
 

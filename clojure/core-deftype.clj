@@ -1,66 +1,88 @@
 (ns clojure.core-deftype)
 
-(defn parse-opts [s]
-  (loop [opts {} [k v & rs :as s] s]
-    (if (keyword? k)
-      (recur (assoc opts k v) rs)
-      [opts s])))
-
-(defn parse-impls [specs]
-  (loop [ret {} s specs]
+(defn parse-impls
+  "From a seq containing a both non-seqs and seqs, returns a map where the keys
+  are the non-seqs, and the values are seqs of the seqs that come after each
+  non-seq.  Seqs that occur before the first non-seq are dropped."
+  [specs]
+  (loop [ret {}
+         s (drop-while seq? specs)]
     (if (seq s)
       (recur (assoc ret (first s) (take-while seq? (next s)))
              (drop-while seq? (next s)))
       ret)))
 
-(defn parse-opts+specs [opts+specs]
-  (let [[opts specs] (parse-opts opts+specs)
-        impls (parse-impls specs)
-        interfaces (keys impls)
-        methods (reduce #(assoc %1 (first %2) %2)
-                         {}
-                         (apply concat (vals impls)))]
-    (when-let [bad-opts (seq (remove #{:no-print} (keys opts)))]
-      (throw (IllegalArgumentException. (apply str "Unsupported option(s) -" bad-opts))))
-    [interfaces methods opts]))
-
-(defn debug [v]
-    (py/print v)
-    v)
-
 (defn wrap-specs
-    [name fields specs]
-    (zipmap (map clojure.core/name (keys specs))
-            (map #(prop-wrap name fields %)
-                 (vals specs))))
+  "Given a type name, a seq of fields and a map of symbolic function names to
+  function impls (of the form (sym [args+] body)), returns a map of string
+  function names to functions named typename_fnname.  The function bodies are
+  wrapped in a let-macro that makes each field available, being let-macro'd to
+  the proper getattr."
+  [name fields specs]
+  (zipmap (map clojure.core/name (keys specs))
+          (map #(prop-wrap-fn name fields %) (vals specs))))
+
+(defn- protocol? [proto] (instance? clojure.lang.protocol/ProtocolMeta proto))
 
 (defmacro deftype
-    [name fields & specs]
-    (let [[interfaces methods] (parse-opts+specs specs)
-          methods (wrap-specs name fields methods) 
-          methods (if (= (count fields) 0)
-                      methods
-                      (assoc methods "__init__" (clojure.core/make-init fields)))]
-          `(~'do (def ~name (py/type ~(.-name name)
-                                      (py/tuple ~(vec [py/object]))
-                                      (.toDict ~methods)))
-                ~@(map (fn [x] `((clojure.lang.protocol/extends ~x) ~name))
-                               interfaces))))
-
-(defn abstract-fn [self & args]
-    (throw (AbstractMethodCall self)))
-
-(defmacro definterface
-    [name & sigs]
-    (let [methods (zipmap (map #(clojure.core/name (first %)) sigs)
-                          (map #(-> `(~'fn ~(symbol (str name "_" (clojure.core/name (first %))))
-                                      ~@'([self & args]
-                                          (throw (AbstractMethodCall self))))) sigs))]
-                `(do (def ~name (py/type ~(clojure.core/name name)
-                                      (py/tuple [py/object])
-                                      (.toDict ~methods))))))
+  [name fields & specs]
+  (let [impls (parse-impls specs)
+        realfns (zipmap (keys impls)
+                        (map #(->> (for [[name & _ :as all] (val %)] [name all])
+                                (apply concat)
+                                (apply hash-map)
+                                (wrap-specs name fields))
+                             impls))
+        init (make-init fields)]
+    `(let [all-methods# (remove (comp protocol? key) ~realfns)
+           supers# (map key all-methods#)
+           methods# (apply merge (map val all-methods#))
+           methods# (assoc methods# "__init__" ~init)
+           all-protofns# (filter (comp protocol? key) ~realfns)]
+       (def ~name (py/type ~(clojure.core/name name)
+                           (py/tuple supers#)
+                           (.toDict methods#)))
+       (doseq [[proto# protofns#] all-protofns#]
+         (.extendForClass proto# ~name protofns#)))))
 
 (defmacro defprotocol
+  "A protocol is a named set of named methods and their signatures:
+
+  (defprotocol AProtocolName
+    ;optional doc string
+    \"A doc string for AProtocol abstraction\"
+  ;method signatures
+    (bar [self a b] \"bar docs\")
+    (baz [self a] [self a b] [self a b c] \"baz docs\"))
+
+  No implementations are provided. Docs can be specified for the protocol
+  overall and for each method. The above yields a set of polymorphic functions
+  and a protocol object. All are namespace-qualified by the ns enclosing the
+  definition The resulting functions dispatch on the type of their first
+  argument, which is required and corresponds to the implicit target object
+  ('self' in Python parlance). Implementations of the protocol methods can be
+  provided using extend.
+
+  (defprotocol P
+    (foo [self])
+    (bar-me [self] [this y]))
+
+  (deftype Foo [a b c]
+   P
+    (foo [self] a)
+    (bar-me [self] b)
+    (bar-me [self y] (+ c y)))
+
+  (bar-me (Foo 1 2 3) 42)
+  => 45
+
+  (foo
+    (let [x 42]
+      (reify P
+        (foo [self] 17)
+        (bar-me [self] x)
+        (bar-me [self y] x))))
+  => 17"
   [name & sigs]
   (let [docstr (when (string? (first sigs)) (first sigs))
         sigs (if docstr (next sigs) sigs)]
@@ -72,66 +94,58 @@
 (defmacro reify 
   "reify is a macro with the following structure:
 
- (reify options* specs*)
-  
-  Currently there are no options.
+  (reify specs*)
 
-  Each spec consists of the protocol or interface name followed by zero
-  or more method bodies:
+  Each spec consists of the protocol or superclass name followed by zero or
+  more method bodies:
 
-  protocol-or-interface-or-Object
+  protocol-or-superclass
   (methodName [args+] body)*
 
-  Methods should be supplied for all methods of the desired
-  protocol(s) and interface(s). You can also define overrides for
-  methods of Object. Note that the first parameter must be supplied to
-  correspond to the target object ('this' in Java parlance). Thus
-  methods for interfaces will take one more argument than do the
-  interface declarations.  Note also that recur calls to the method
-  head should *not* pass the target object, it will be supplied
+  Methods should be supplied for all methods of the desired protocols. You can
+  also define overrides for methods of any superclass (i.e., define arbitrary
+  methods). Note that the first parameter must be supplied to correspond to the
+  target object ('self' in Python parlance). Note also that recur calls to the
+  method head should *not* pass the target object, it will be supplied
   automatically and can not be substituted.
 
-  The return type can be indicated by a type hint on the method name,
-  and arg types can be indicated by a type hint on arg names. If you
-  leave out all hints, reify will try to match on same name/arity
-  method in the protocol(s)/interface(s) - this is preferred. If you
-  supply any hints at all, no inference is done, so all hints (or
-  default of Object) must be correct, for both arguments and return
-  type. If a method is overloaded in a protocol/interface, multiple
-  independent method definitions must be supplied.  If overloaded with
-  same arity in an interface you must specify complete hints to
-  disambiguate - a missing hint implies Object.
-
-  recur works to method heads The method bodies of reify are lexical
-  closures, and can refer to the surrounding local scope:
+  recur works to method heads. The method bodies of reify are lexical closures,
+  and can refer to the surrounding local scope:
   
   (str (let [f \"foo\"] 
-       (reify Object 
-         (toString [this] f))))
+         (reify py/object
+           (__str__ [self] f))))
   == \"foo\"
 
   (seq (let [f \"foo\"] 
-       (reify clojure.lang.Seqable 
-         (seq [this] (seq f)))))
+         (reify clojure.protocols/Seqable
+           (seq [self] (seq f)))))
   == (\\f \\o \\o))
   
-  reify always implements clojure.lang.IObj and transfers meta
-  data of the form to the created object.
+  reify always implements clojure.lang.IObj and transfers meta data of the form
+  to the created object.
   
-  (meta ^{:k :v} (reify Object (toString [this] \"foo\")))
+  (meta ^{:k :v} (reify py/object (__str__ [self] \"foo\")))
   == {:k :v}"
   {:added "1.2"} 
-  [& opts+specs]
-    (let [[interfaces methods] (parse-opts+specs opts+specs)
-          methods (zipmap (map name (keys methods))
-                          (map #(cons 'fn %) (vals methods)))]
-         `(let [~'type (py/type ~"nm"
-                               (py/tuple ~(vec (concat interfaces [py/object])))
-                               (.toDict ~methods))]
-                  
-                ~@(map (fn [x] `(clojure.lang.protocol/extendForType ~x ~'type))
-                               interfaces)
-                  (~'type))))
+  [& specs]
+  (let [impls (parse-impls specs)
+        realfns (zipmap (keys impls)
+                        (map #(->> (for [[name & _ :as all] (val %)] [name all])
+                                (apply concat)
+                                (apply hash-map)
+                                (wrap-specs name []))
+                             impls))]
+    `(let [all-methods# (remove (comp protocol? key) ~realfns)
+           supers# (map key all-methods#)
+           methods# (map val all-methods#)
+           all-protofns# (filter (comp protocol? key) ~realfns)]
+       (let [type# (py/type "reified"
+                            (py/tuple supers#)
+                            (.toDict (or (apply merge methods#) ~{})))]
+         (doseq [[proto# protofns#] all-protofns#]
+           (.extendForClass proto# type# protofns#))
+         (type#)))))
 
 (require 'copy)
 
@@ -233,20 +247,29 @@
 
 
 (defmacro defrecord
-    [name fields & specs]
-    (let [[interfaces methods] (parse-opts+specs specs)
-          interfaces (concat interfaces [IPersistentMap])
-          methods (wrap-specs name fields methods) 
-          methods (if (= (count fields) 0)
-                      methods
-                      (assoc methods "__init__" (clojure.core/make-init fields)))
-          methods (merge recordfns methods)
-          methods (assoc methods "__methods__" methods)]
-         `(~'do (def ~name (py/type ~(.-name name)
-                                      (py/tuple ~(vec interfaces))
-                                      (.toDict ~methods)))
-                ~@(map (fn [x] `(clojure.lang.protocol/extendForType ~x ~name))
-                               interfaces))))
+  [name fields & specs]
+  (let [impls (parse-impls specs)
+        realfns (zipmap (keys impls)
+                        (map #(->> (for [[name & _ :as all] (val %)] [name all])
+                                (apply concat)
+                                (apply hash-map)
+                                (wrap-specs name fields))
+                             impls))
+        init (make-init fields)]
+    `(let [all-methods# (remove (comp protocol? key) ~realfns)
+           supers# (map key all-methods#)
+           methods# (->> all-methods# (apply concat) (apply hash-map))
+           methods# (assoc methods# "__init__" ~init)
+           methods# (merge ~recordfns methods#)
+           methods# (assoc methods# "__methods__" methods#)
+           all-protofns# (filter (comp protocol? key) ~realfns)]
+       (def ~name (py/type ~(clojure.core/name name)
+                           (py/tuple supers#)
+                           (.toDict methods#)))
+       (.extendForClass clojure.protocols/IPersistentMap ~name)
+       (doseq [[proto# protofns#] all-protofns#]
+         (.extendForClass proto# ~name protofns#)))))
+
 
 (defn- emit-impl [[p fs]]
   [p (zipmap (map #(-> % first keyword) fs)
@@ -265,7 +288,7 @@
                (map #(cons 'fn (hint (drop 1 %))) fs))]))
 
 (defn- emit-extend-type [c specs]
-  (let [impls (parse-impls specs)]
+  (let [[pre impls] (parse-impls specs)]
     `(extend ~c
              ~@(mapcat (partial emit-hinted-impl c) impls))))
 

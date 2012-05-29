@@ -97,17 +97,26 @@ def makeProtocol(ns, name, fns):
             self.implementors.add(cls)
 
         @classmethod
-        def extendForType(self, cls, mp):
-            """Extend this protocol for the given type and the given map of methods.
+        def extendForClass(self, cls, mp=None):
+            """Extend self to a class using a names to implementations map.
 
-            mp should be a map of methodnames: functions.
+            If the implementation map is not given, the protocol is extended
+            using identically named methods of the class.
             """
-            for meth_name in mp:
-                name = meth_name.getName()
-                if name not in self.protofns:
-                    raise ProtocolException("No Method found for name " + x)
-                fn = self.protofns[name]
-                fn.extend(cls, mp[meth_name])
+            if mp is None:
+                for fn in self.protofns:
+                    pfn = self.protofns[fn]
+                    if hasattr(cls, fn):
+                        pfn.extend(cls, getattr(cls, fn))
+            else:
+                for meth_name in mp:
+                    name = (meth_name if isinstance(meth_name, basestring)
+                            else meth_name.getName())
+                    if name not in self.protofns:
+                        raise ProtocolException(
+                            "No method found for name {0}".format(name))
+                    pfn = self.protofns[name]
+                    pfn.extend(cls, mp[meth_name])
             self.markImplementor(cls)
 
     Protocol.__name__ = name
@@ -163,21 +172,11 @@ def getExactProtocol(cls):
            return cls.__exactprotocol__
 
 
-def extendProtocolForClass(proto, cls):
-    """Implicitly extend a protocol to a class using identically named fields.
-    """
-    for fn in proto.protofns:
-        pfn = proto.protofns[fn]
-        if hasattr(cls, fn):
-            pfn.extend(cls, getattr(cls, fn))
-    proto.markImplementor(cls)
-
-
 def extends(*args):
     """Decorator for a class implicitely extending a list of protocols."""
     def decorator(cls):
         for protocol in args:
-            extendProtocolForClass(protocol, cls)
+            protocol.extendForClass(cls)
         return cls
     return decorator
 
@@ -185,7 +184,7 @@ def extends(*args):
 def _extendProtocolForAllSubclasses(proto, cls):
     """Implicitly extend a protocol to a class and all its subclasses.
     """
-    extendProtocolForClass(proto, cls)
+    proto.extendForClass(cls)
     for x in cls.__subclasses__():
         _extendProtocolForAllSubclasses(proto, x)
 
@@ -196,14 +195,6 @@ def extendForAllSubclasses(cls):
     """
     for proto in getattr(cls, "__protocols__", []):
         _extendProtocolForAllSubclasses(proto, cls)
-
-
-# XXX remove
-def extendForType(interface, cls):
-    """Implicitly extend the list of protocols of an interface to a class.
-    """
-    for proto in getattr(interface, "__protocols__", []):
-        extendProtocolForClass(proto, cls)
 
 
 def extend(cls, *args):
@@ -219,5 +210,5 @@ def extend(cls, *args):
         if not proto:
             raise ProtocolException(
                 "Expected protocol, got {0}".format(cls_proto))
-        proto.extendForType(cls, mapping)
+        proto.extendForClass(cls, mapping)
 

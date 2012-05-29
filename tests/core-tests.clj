@@ -678,8 +678,9 @@
     (a/assert-equal ((fn [& y] (vec y)) 1 2) [1 2]))
 
 (deftest reify-tests
-    (let [f (fn [y] (reify ISeq
+    (let [f (fn [y] (reify clojure.protocols/Seqable
                            (seq [self] self)
+                           clojure.protocols/ISeq
                            (first [self] y)))]
          (a/assert-equal (first (f 42)) 42)))
 

@@ -12,11 +12,11 @@
     (preferMethod [self dispatchValX dispatchValY])
     (prefers [self x y])
     (isA [self x y])
+    (dominates [self x y])
     (resetCache [self])
     (getMethod [self dispatchVal])
     (getFn [self dispatchVal])
     (findAndCacheBestMethod [self dispatchVal])
-    (__call__ [& args])
     (getMethodTable [self])
     (getPreferTable [self]))
 
@@ -39,20 +39,20 @@
     (addMethod [self dispatchVal method]
         (py/setattr self 
                     "methodTable" 
-                    (assoc (.getMethodTable self)
+                    (assoc (getMethodTable self)
                            dispatchVal 
                            method))
-        (.resetCache self))
+        (resetCache self))
     
     (removeMethod [self dispatchVal]
         (py/setattr self 
                     "methodTable" 
-                    (dissoc (.getMethodTable self)
+                    (dissoc (getMethodTable self)
                             dispatchVal))
-        (.resetCache self))
+        (resetCache self))
     
     (preferMethod [self x y]
-        (if (.prefers self x y)
+        (if (prefers self x y)
             (throw (py/Exception (str "Preference conflict in multimethod "
                                    methodName
                                    " "
@@ -61,19 +61,19 @@
                                    y))))
         (py/setattr self
                     "preferTable"
-                    (assoc (.getPreferTable self)
+                    (assoc (getPreferTable self)
                            x
-                           (conj (get (.getPreferTable self) x #{}) y)))
-        (.resetCache self))
+                           (conj (get (getPreferTable self) x #{}) y)))
+        (resetCache self))
 
     (prefers [self x y]
-        (let [xprefs (get (.getPreferTable self) x)]
+        (let [xprefs (get (getPreferTable self) x)]
              (cond (and (not (nil? xprefs)) 
                         (contains? xprefs y))
                     true
-                   (some #(.prefers self x (first %)) (parents y))
+                   (some #(prefers self x (first %)) (parents y))
                     true
-                   (some #(.prefers self (first %) y) (parents x))
+                   (some #(prefers self (first %) y) (parents x))
                     true
                    :default
                     false)))
@@ -82,28 +82,28 @@
         (isa? @hierarchy x y))
     
     (dominates [self x y]
-        (or (.prefers self x y)
-            (.isA self x y)))
+        (or (prefers self x y)
+            (isA self x y)))
     
     (resetCache [self]
-        (py/setattr self "methodCache" (.getMethodTable self))
+        (py/setattr self "methodCache" (getMethodTable self))
         (py/setattr self "cachedHierarchy" @hierarchy)
         methodCache)
     
     (getMethod [self dispatchVal]
         (if (not (= cachedHierarchy @hierarchy))
-            (.resetCache self))
+            (resetCache self))
         (let [targetFn (get methodCache dispatchVal)]
              (if (not (nil? targetFn))
                  targetFn
-                 (let [targetFn (.findAndCacheBestMethod self dispatchVal)]
+                 (let [targetFn (findAndCacheBestMethod self dispatchVal)]
                       (if (not (nil? targetFn))
                           targetFn
-                          (get (.getMethodTable self)
+                          (get (getMethodTable self)
                                defaultDispatchVal))))))
     
     (getFn [self dispatchVal]
-        (let [targetFn (.getMethod self dispatchVal)]
+        (let [targetFn (getMethod self dispatchVal)]
              (if (nil? targetFn)
                  (throw (py/Exception (str "No method in multimethod " 
                                         methodName
@@ -113,12 +113,12 @@
     
     (findAndCacheBestMethod [self dispatchVal]
       (let [be (reduce (fn [bestEntry e]
-                      (if (.isA self dispatchVal (first e))
+                      (if (isA self dispatchVal (first e))
                           (if (or (nil? bestEntry) 
-                                  (.dominates self (first e)
+                                  (dominates self (first e)
                                                    (first bestEntry)))
                               e
-                              (if (not (.dominates self (first bestEntry)
+                              (if (not (dominates self (first bestEntry)
                                                         (first e)))
                                   (throw (py/Exception (str "Multimple methods in multimethod "
                                                          methodName
@@ -132,7 +132,7 @@
                                   bestEntry))
                           bestEntry))
                     nil
-                    (.getMethodTable self))]
+                    (getMethodTable self))]
            (cond (nil? be)
                   nil
                  (is? cachedHierarchy @hierarchy)
@@ -143,8 +143,8 @@
                                          (second be)))
                       (second be))
                   :default
-                   (do (.resetCache self)
-                       (.findAndCacheBestMethod self dispatchVal)))))
+                   (do (resetCache self)
+                       (findAndCacheBestMethod self dispatchVal)))))
     
     (getMethodTable [self]
         (.-methodTable self))
@@ -152,8 +152,9 @@
     (getPreferTable [self]
         (.-preferTable self))
     
+    py/object
     (__call__ [self & args]
-        (apply (.getFn self (apply dispatchFn args))
+        (apply (getFn self (apply dispatchFn args))
                args)))
                                
                 

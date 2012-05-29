@@ -106,10 +106,10 @@
  first (fn first [s]
          (py/if (py.bytecode/COMPARE_OP "is not" s nil)
            (py/if (seq? s)
-             (.first s)
+             ((.get (.-protofns clojure.protocols/ISeq) "first") s)
              (let [s (seq s)]
                (py/if (py.bytecode/COMPARE_OP "is not" s nil)
-                 (.first s)
+                 ((.get (.-protofns clojure.protocols/ISeq) "first") s)
                  nil)))
            nil)))
 
@@ -3403,7 +3403,7 @@
 
 ;;; multimethods
 (require 'clojure.core-deftype)
-(doseq [to-add ['definterface 'deftype 'defprotocol 'defrecord
+(doseq [to-add ['deftype 'defprotocol 'defrecord
                 'extend-type 'reify]]
   (intern *ns* to-add (.deref (ns-resolve 'clojure.core-deftype to-add))))
 (require 'clojure.core-multimethod)
@@ -3466,21 +3466,21 @@
   "Creates and installs a new method of multimethod associated with dispatch-value. "
   {:added "1.0"}
   [multifn dispatch-val & fn-tail]
-  `(.addMethod ~(with-meta multifn {:tag 'clojure.lang.MultiFn}) ~dispatch-val (fn ~@fn-tail)))
+  `(clojure.core-multimethod/addMethod ~(with-meta multifn {:tag 'clojure.lang.MultiFn}) ~dispatch-val (fn ~@fn-tail)))
 
 (defn remove-all-methods
   "Removes all of the methods of multimethod."
   {:added "1.2"
    :static true}
  [multifn]
- (.reset multifn))
+ (clojure.core-multimethod/reset multifn))
 
 (defn remove-method
   "Removes the method of multimethod associated with dispatch-value."
   {:added "1.0"
    :static true}
  [multifn dispatch-val]
- (.removeMethod multifn dispatch-val))
+ (clojure.core-multimethod/removeMethod multifn dispatch-val))
 
 (defn prefer-method
   "Causes the multimethod to prefer matches of dispatch-val-x over dispatch-val-y
@@ -3488,26 +3488,26 @@
   {:added "1.0"
    :static true}
   [multifn dispatch-val-x dispatch-val-y]
-  (.preferMethod multifn dispatch-val-x dispatch-val-y))
+  (clojure.core-multimethod/preferMethod multifn dispatch-val-x dispatch-val-y))
 
 (defn methods
   "Given a multimethod, returns a map of dispatch values -> dispatch fns"
   {:added "1.0"
    :static true}
-  [multifn] (.getMethodTable multifn))
+  [multifn] (clojure.core-multimethod/getMethodTable multifn))
 
 (defn get-method
   "Given a multimethod and a dispatch value, returns the dispatch fn
   that would apply to that value, or nil if none apply and no default"
   {:added "1.0"
    :static true}
-  [multifn dispatch-val] (.getMethod multifn dispatch-val))
+  [multifn dispatch-val] (clojure.core-multimethod/getMethod multifn dispatch-val))
 
 (defn prefers
   "Given a multimethod, returns a map of preferred value -> set of other values"
   {:added "1.0"
    :static true}
-  [multifn] (.getPreferTable multifn))
+  [multifn] (clojure.core-multimethod/getPreferTable multifn))
 
 ;;; strings
 (defn subs
