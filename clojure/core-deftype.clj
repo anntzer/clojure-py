@@ -288,7 +288,7 @@
                (map #(cons 'fn (hint (drop 1 %))) fs))]))
 
 (defn- emit-extend-type [c specs]
-  (let [[pre impls] (parse-impls specs)]
+  (let [impls (parse-impls specs)]
     `(extend ~c
              ~@(mapcat (partial emit-hinted-impl c) impls))))
 

@@ -3259,18 +3259,16 @@
 
 ;;; protocols
 (defn extends?
+  "Returns true if atype extends protocol."
   {:static true}
   [protocol atype]
-  (let [p (clojure.lang.protocol/getExactProtocol protocol)]
-    (if p
-      (boolean (.getExtensionBy p atype)))
-      (py/issubclass protocol atype)))
+  (py/issubclass atype protocol))
 
 (defn satisfies?
   "Returns true if x satisfies the protocol"
   {:added "1.2"}
   [protocol x]
-  (extends? (class x) protocol))
+  (extends? protocol (class x)))
 
 ;;; inheritance hierarchy
 (defn bases

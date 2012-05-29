@@ -824,8 +824,8 @@
     (a/assert-equal (bar ::circle ::foo) :circle-foo))
 
 (deftest extends?-tests
-    (a/assert-true (extends? (type '()) clojure.protocols/ISeq))
-    (a/assert-false (extends? (type 1) clojure.protocols/ISeq)))
+    (a/assert-true (extends? clojure.protocols/ISeq (type '())))
+    (a/assert-false (extends? clojure.protocols/ISeq (type 1))))
 
 (deftest satisfies?-tests
     (a/assert-true (satisfies? clojure.protocols/ISeq '()))

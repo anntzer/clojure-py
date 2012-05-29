@@ -163,15 +163,6 @@ def asProtocol(ns=protocols):
     return decorator
 
 
-def getExactProtocol(cls):
-    """Return the protocol defined by a class, if there is one.
-    """
-    if (hasattr(cls, "__exactprotocol__")
-        and hasattr(cls, "__exactprotocolclass__")
-        and cls.__exactprotocolclass__ is cls):
-           return cls.__exactprotocol__
-
-
 def extends(*args):
     """Decorator for a class implicitely extending a list of protocols."""
     def decorator(cls):
