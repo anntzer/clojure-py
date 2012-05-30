@@ -3,9 +3,9 @@
     (:use [tests.utils :only [deftest]]))
 
 (deftest try-tests
-;  (a/assert-true (= nil (try)))
+  (a/assert-true (= nil (try)))
 
-;  (a/assert-true (= 20 (try (py.bytecode/BINARY_ADD 10 10 ))))
+  (a/assert-true (= 20 (try (py.bytecode/BINARY_ADD 10 10 ))))
 
   (a/assert-true (= 20
     (try (py.bytecode/BINARY_ADD 10 10)
@@ -174,9 +174,9 @@
     (a/assert-equal (quot 6 4) 1)
     (a/assert-equal (quot 0 5) 0)
 
-    ;(a/assert-equal (quot 2 1/2) 4)
-    ;(a/assert-equal (quot 2/3 1/2) 1)
-    ;(a/assert-equal (quot 1 2/3) 1)
+    (a/assert-equal (quot 2 1/2) 4)
+    (a/assert-equal (quot 2/3 1/2) 1)
+    (a/assert-equal (quot 1 2/3) 1)
 
     (a/assert-equal (quot 4.0 2.0) 2.0)
     (a/assert-equal (quot 4.5 2.0) 2.0)
@@ -209,9 +209,9 @@
     (a/assert-equal (rem 6 4) 2)
     (a/assert-equal (rem 0 5) 0)
 
-    ;(a/assert-equal (rem 2 1/2) 0)
-    ;(a/assert-equal (rem 2/3 1/2) 1/6)
-    ;(a/assert-equal (rem 1 2/3) 1/3)
+    (a/assert-equal (rem 2 1/2) 0)
+    (a/assert-equal (rem 2/3 1/2) 1/6)
+    (a/assert-equal (rem 1 2/3) 1/3)
 
     (a/assert-equal (rem 4.0 2.0) 0.0)
     (a/assert-equal (rem 4.5 2.0) 0.5)
@@ -237,9 +237,9 @@
     (a/assert-equal (mod 6 4) 2)
     (a/assert-equal (mod 0 5) 0)
 
-    ;(a/assert-equal (mod 2 1/2) 0)
-    ;(a/assert-equal (mod 2/3 1/2) 1/6)
-    ;(a/assert-equal (mod 1 2/3) 1/3)
+    (a/assert-equal (mod 2 1/2) 0)
+    (a/assert-equal (mod 2/3 1/2) 1/6)
+    (a/assert-equal (mod 1 2/3) 1/3)
 
     (a/assert-equal (mod 4.0 2.0) 0.0)
     (a/assert-equal (mod 4.5 2.0) 0.5)
@@ -467,8 +467,8 @@
     (a/assert-true (not-any? odd? '(2 4 6)))
     (a/assert-false (not-any? odd? '(1 2 3))))
 
-;(deftest dotimes-tests
-;    (dotimes [n 5] (a/assert-true (and (>= n 0) (< n 5)))))
+(deftest dotimes-tests
+    (dotimes [n 5] (a/assert-true (and (>= n 0) (< n 5)))))
 
 (deftest map-tests
     (a/assert-equal (map inc [1 2 3 4 5]) (seq [2 3 4 5 6])))
@@ -544,7 +544,7 @@
   (inc! [self]))
 
 (deftype Accum [i]
-    IInc  ; Bit of a hack until we get definterface implemented
+    IInc
     (inc! [self] (py/setattr self "i" (inc i))))
 
 (deftest dorun-tests
@@ -793,9 +793,9 @@
                 (a/assert-true (thread-bound? #'unbound))
                 (a/assert-false (thread-bound? #'unbound #'bound))))
 
-;(deftest isa?-tests
-        ;(a/assert-true (isa? ISeq Seqable))
-        ;(a/assert-false (isa? Seqable ISeq)))
+(deftest isa?-tests
+        (a/assert-true (isa? clojure.lang.aseq/ASeq clojure.protocols/ISeq))
+        (a/assert-false (isa? clojure.protocols/ISeq clojure.lang.aseq/ASeq)))
 
 (defmulti factorial identity)
 
