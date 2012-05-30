@@ -106,10 +106,10 @@
  first (fn first [s]
          (py/if (py.bytecode/COMPARE_OP "is not" s nil)
            (py/if (seq? s)
-             ((.get (.-protofns clojure.protocols/ISeq) "first") s)
+             (clojure.protocols/first s)
              (let [s (seq s)]
                (py/if (py.bytecode/COMPARE_OP "is not" s nil)
-                 ((.get (.-protofns clojure.protocols/ISeq) "first") s)
+                 (clojure.protocols/first s)
                  nil)))
            nil)))
 
@@ -2548,8 +2548,9 @@
   reached before a value is available. See also - realized?."
   {:added "1.0"
    :static true}
-  ([ref] (.deref ref))
-  ([ref timeout-ms timeout-val] (.deref ref timeout-ms timeout-val)))
+  ([ref] (clojure.protocols/deref ref))
+  ([ref timeout-ms timeout-val]
+   (clojure.protocols/deref ref timeout-ms timeout-val)))
 
 (defmacro binding
   "binding => var-symbol init-expr

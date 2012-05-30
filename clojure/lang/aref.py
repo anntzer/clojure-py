@@ -1,12 +1,18 @@
+from abc import ABCMeta, abstractmethod
+
 from clojure.lang.areference import AReference
-from clojure.lang.iref import IRef
 import clojure.lang.rt as RT
 from clojure.lang.cljexceptions import IllegalStateException, ArityException
 from clojure.lang.threadutil import synchronized
 from clojure.lang.persistenthashmap import EMPTY
+from . import protocol
+from ..protocols import IDeref, IRef
 
 
-class ARef(AReference, IRef):
+@protocol.extends(IDeref, IRef)
+class ARef(AReference):
+    __metaclass__ = ABCMeta
+
     def __init__(self, meta=None):
         AReference.__init__(self, meta)
         self.validator = None
@@ -54,3 +60,7 @@ class ARef(AReference, IRef):
                 fn = e.getValue()
                 if fn is not None:
                     fn(e.getKey(), self, oldval, newval)
+
+    @abstractmethod
+    def deref(self):
+        pass

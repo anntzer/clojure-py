@@ -8,7 +8,6 @@ from clojure.lang.ipersistentcollection import IPersistentCollection
 from clojure.lang.ipersistentmap import IPersistentMap
 from clojure.lang.ilookup import ILookup
 from clojure.lang.associative import Associative
-from clojure.lang.ideref import IDeref
 from clojure.lang.seqable import Seqable
 from clojure.lang.atom import Atom
 from clojure.lang.iobj import IObj

@@ -245,7 +245,6 @@
                             [self [k v]]
                             (.assoc self k v))})
 
-
 (defmacro defrecord
   [name fields & specs]
   (let [impls (parse-impls specs)
@@ -269,7 +268,6 @@
        (.extendForClass clojure.protocols/IPersistentMap ~name)
        (doseq [[proto# protofns#] all-protofns#]
          (.extendForClass proto# ~name protofns#)))))
-
 
 (defn- emit-impl [[p fs]]
   [p (zipmap (map #(-> % first keyword) fs)
