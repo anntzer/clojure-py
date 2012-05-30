@@ -1,15 +1,12 @@
 from clojure.lang.aseq import ASeq
 from clojure.lang.cljexceptions import (IllegalAccessError,
                                         InvalidArgumentException)
-from . import protocol
-from ..protocols import ISeq
 
 
 def isReader(rdr):
     return hasattr(rdr, "read") and hasattr(rdr, "tell")
 
 
-@protocol.extends(ISeq)
 class FileSeq(ASeq):
     def __init__(self, *args):
         if len(args) == 1:
@@ -83,7 +80,6 @@ class FileSeq(ASeq):
         return not self == other
 
 
-@protocol.extends(ISeq)
 class MutatableFileSeq(ASeq):
     def __init__(self, fs):
         self.fs = fs

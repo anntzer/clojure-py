@@ -9,8 +9,8 @@ from clojure.lang.indexableseq import IndexableSeq
 from clojure.lang.ipersistentset import IPersistentSet
 from clojure.lang.ipersistentvector import IPersistentVector
 from clojure.lang.cljexceptions import IndexOutOfBoundsException
-
 from .. import protocols
+
 
 class APersistentVector(IPersistentVector, IPrintable):
     """Pseudo-Abstract class to define a persistent vector.

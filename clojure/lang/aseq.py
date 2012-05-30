@@ -2,6 +2,7 @@
 March 25, 2012 -- documented
 """
 
+from abc import ABCMeta, abstractmethod
 import cStringIO
 
 from clojure.lang.obj import Obj
@@ -10,7 +11,6 @@ from clojure.lang.iterable import Iterable
 from clojure.lang.iprintable import IPrintable
 from clojure.lang.sequential import Sequential
 from clojure.lang.ipersistentset import IPersistentSet
-
 from . import protocol
 from .. import protocols
 from ..protocols import ISeq, Seqable
@@ -18,6 +18,8 @@ from ..protocols import ISeq, Seqable
 
 @protocol.extends(ISeq, Seqable)
 class ASeq(Obj, Sequential, IHashEq, Iterable, IPrintable):
+    __metaclass__ = ABCMeta
+
     def __eq__(self, other):
         if self is other:
             return True
@@ -157,3 +159,11 @@ class ASeq(Obj, Sequential, IHashEq, Iterable, IPrintable):
                 writer.write(" ")
             s = s.next()
         writer.write(")")
+
+    @abstractmethod
+    def first(self):
+        pass
+
+    @abstractmethod
+    def next(self):
+        pass

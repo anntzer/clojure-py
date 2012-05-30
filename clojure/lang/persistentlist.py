@@ -15,7 +15,6 @@ from .. import protocols
 from ..protocols import ISeq
 
 
-@protocol.extends(ISeq)
 class PersistentList(ASeq, IPersistentList, IReduce, Counted):
     def __init__(self, *args):
         """Instantiate a PersistentList.

@@ -8,8 +8,6 @@ from clojure.lang.box import Box
 from clojure.lang.atomicreference import AtomicReference
 from clojure.lang.mapentry import MapEntry
 from clojure.lang.cons import Cons
-from . import protocol
-from ..protocols import ISeq, Seqable
 
 def mask(h, shift):
     return (h >> shift) & 0x01f
@@ -265,7 +263,6 @@ class ArrayNode(INode):
     def nodeSeq(self):
         return createSeq(self.array)
 
-@protocol.extends(ISeq, Seqable)
 class Seq(ASeq):
     def __init__(self, meta, nodes, i, s):
         self._meta = meta
@@ -601,7 +598,6 @@ class HashCollisionNode(INode):
         editable.count -= 1
         return editable
 
-@protocol.extends(ISeq, Seqable)
 class NodeSeq(ASeq):
     def __init__(self, *args):
         if len(args) == 3:

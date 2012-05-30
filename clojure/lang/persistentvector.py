@@ -7,7 +7,6 @@ from clojure.lang.apersistentvector import APersistentVector
 from clojure.lang.cljexceptions import (ArityException,
                                         IllegalStateException,
                                         IndexOutOfBoundsException)
-
 from .. import protocols
 
 

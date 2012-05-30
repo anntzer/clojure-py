@@ -5,9 +5,7 @@ from clojure.lang.ipersistentmap import IPersistentMap
 from clojure.lang.ipersistentvector import IPersistentVector
 from clojure.lang.cljexceptions import (ArityException,
                                         InvalidArgumentException)
-from . import protocol
 from .. import protocols
-from ..protocols import ISeq, Seqable
 
 
 class APersistentMap(IPersistentMap, IPrintable):
@@ -116,7 +114,6 @@ def mapHash(m):
                   0)
 
 
-@protocol.extends(ISeq, Seqable)
 class KeySeq(ASeq):
     def __init__(self, *args):
         if len(args) == 1:
@@ -149,7 +146,6 @@ def createKeySeq(s):
     return KeySeq(s)
 
 
-@protocol.extends(ISeq, Seqable)
 class ValueSeq(ASeq):
     def __init__(self, *args):
         if len(args) == 1:

@@ -6,11 +6,8 @@ from clojure.lang.iobj import IObj
 from clojure.lang.apersistentset import APersistentSet
 from clojure.lang.persistenthashmap import EMPTY as EMPTY_MAP
 from clojure.lang.cljexceptions import IllegalArgumentException
-from . import protocol
-from ..protocols import ISeq
 
 
-@protocol.extends(ISeq)
 class PersistentHashSet(APersistentSet, IObj):
     def __init__(self, meta, impl):
         """Use create or createWithCheck to instantiate."""

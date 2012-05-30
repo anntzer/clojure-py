@@ -7,13 +7,10 @@ from clojure.lang.ieditablecollection import IEditableCollection
 from clojure.lang.mapentry import MapEntry
 from clojure.lang.aseq import ASeq
 from clojure.lang.counted import Counted
-from . import protocol
-from ..protocols import ISeq
 
 
 HASHTABLE_THRESHOLD = 16
 
-@protocol.extends(ISeq)
 class PersistentArrayMap(APersistentMap, IEditableCollection):
     def __init__(self, *args):
         if len(args) == 0:

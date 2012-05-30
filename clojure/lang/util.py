@@ -1,7 +1,6 @@
 from clojure.lang.cljexceptions import (AbstractMethodCall,
-                                           InvalidArgumentException)
+                                        InvalidArgumentException)
 from clojure.lang.mapentry import MapEntry
-
 from .. import protocols
 
 

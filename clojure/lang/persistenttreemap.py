@@ -10,8 +10,6 @@ from clojure.lang.iobj import IObj
 from clojure.lang.ipersistentmap import IPersistentMap
 from clojure.lang.reversible import Reversible
 import clojure.lang.rt as RT
-from . import protocol
-from ..protocols import ISeq
 
 
 class PersistentTreeMap(APersistentMap, IObj, Reversible):
@@ -564,7 +562,6 @@ class RedBranchVal(RedBranch):
         return BlackBranchVal(self._key, self._val, self._left, self._right)
 
 
-@protocol.extends(ISeq)
 class Seq(ASeq):
     def __init__(self, *args):
         if len(args) == 2:

@@ -37,21 +37,26 @@ class ProtocolFn(object):
 
     def getExtensionBy(self, cls):
         """Return the function that extends this protocol function to a class.
+
+        If this protocol function is implemented by an abstract method, then
+        use the actual implementation of the method.
         """
-        return getattr(cls, self.attrname, None) or self.dispatchTable.get(cls)
+        for supercls in cls.__mro__:
+            fn = (getattr(supercls, self.attrname, None) or
+                  self.dispatchTable.get(supercls))
+            if getattr(fn, "__isabstractmethod__", False):
+                fn = getattr(cls, fn.__name__)
+            if fn:
+                return fn
 
     def __call__(self, *args):
         """Dispatch a function call on the class of the first argument.
         """
-        cls = type(args[0])
-        try:
-            fn = getattr(cls, self.attrname)
-        except AttributeError:
-            fn = self.dispatchTable.get(cls, self.default)
+        fn = self.getExtensionBy(type(args[0])) or self.default
         if fn:
             return fn(*args) # exceptions raised by fn will propagate.
         raise ProtocolException("{0} not extended to handle: {1}"
-                                .format(self, cls))
+                                .format(self, type(args[0])))
 
     def __repr__(self):
         return "<ProtocolFn {0}.{1}>".format(self.protocol.__name__, self.name)
