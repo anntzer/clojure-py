@@ -1,9 +1,7 @@
 class AbstractMethodCall(Exception):
     def __init__(self, cls=None):
         if cls is not None:
-            Exception.__init__(self, "in " + cls.__class__.__name__)
-        else:
-            Exception.__init__(self)
+            self.args = "in {0}".format(cls.__class__.__name__),
 
 
 class ArityException(TypeError):
@@ -40,24 +38,26 @@ class IllegalArgumentException(Exception):
 
 class TransactionRetryException(Exception):
     pass
-    
+
+
 class ReaderException(Exception):
-    def __init__(self, s=None, rdr=None):
-        Exception.__init__(
-            self,
-            s + ("" if rdr is None else " at line " + str(rdr.lineCol()[0])))
+    def __init__(self, arg, rdr=None):
+        if rdr:
+            arg = "At line {0}: {1}".format(rdr.lineCol()[0], arg)
+        self.args = arg,
 
 
 class CompilerException(Exception):
     def __init__(self, reason, form):
         from lispreader import LINE_KEY
-        msg = "Compiler exception {0}".format(reason)
-        at = getattr(form, "meta", lambda: {LINE_KEY: None})()[LINE_KEY]
-        if at:
-            msg += " at {0}".format(at)
-        Exception.__init__(self, msg)
+        if form:
+            meta = form.meta()
+            if meta:
+                reason = "At line {0}: {1}".format(meta[LINE_KEY], reason)
+        self.args = reason,
 
 
 class NoNamespaceException(ImportError):
     def __init__(self, lib, ns):
-        msg = "Importing {0} did not create namespace {1}.".format(lib, ns)
+        self.args = ("Importing {0} did not create namespace {1}.".
+                     format(lib, ns),)
