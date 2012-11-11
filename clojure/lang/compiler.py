@@ -7,6 +7,7 @@ import re
 import sys
 import time
 import fractions
+from contextlib import contextmanager
 
 from clojure.lang.cons import Cons
 from clojure.lang.cljexceptions import CompilerException, AbstractMethodCall
@@ -152,31 +153,30 @@ def compileDef(comp, form):
         value = form.next().next().first()
     if sym.ns is None:
         ns = comp.getNS()
-    else:                                        
+    else:
         ns = sym.ns
 
-    comp.pushName(RT.name(sym))
-    code = []
-    v = intern(comp.getNS(), sym)
+    with comp.name(sym):
+        code = []
+        v = intern(comp.getNS(), sym)
 
-    v.setDynamic(True)
-    if len(form) == 3:
-        code.append((LOAD_CONST, v))
-        code.append((LOAD_ATTR, "bindRoot"))
-        compiledValue = comp.compile(value)
-        if isinstance(value, ISeq) \
-           and value.first().getName() == 'fn' \
-           and sym.meta() is not None:
-            try:
-                compiledValue[0][1].__doc__ = sym.meta()[Keyword('doc')]
-            except AttributeError:
-                pass
-        code.extend(compiledValue)
-        code.append((CALL_FUNCTION, 1))
-    else:
-        code.append((LOAD_CONST, v))
-    v.setMeta(sym.meta())
-    comp.popName()
+        v.setDynamic(True)
+        if len(form) == 3:
+            code.append((LOAD_CONST, v))
+            code.append((LOAD_ATTR, "bindRoot"))
+            compiledValue = comp.compile(value)
+            if (isinstance(value, ISeq) and
+                value.first().getName() == 'fn' and
+                sym.meta() is not None):
+                try:
+                    compiledValue[0][1].__doc__ = sym.meta()[Keyword('doc')]
+                except AttributeError:
+                    pass
+            code.extend(compiledValue)
+            code.append((CALL_FUNCTION, 1))
+        else:
+            code.append((LOAD_CONST, v))
+        v.setMeta(sym.meta())
     return code
 
 
@@ -267,9 +267,8 @@ def compileLoopStar(comp, form):
     recur = {"label": recurlabel,
              "args": [comp.getAlias(arg).compileSet(comp) for arg in args]}
     code.append((recurlabel, None))
-    comp.pushRecur(recur)
-    code.extend(compileImplcitDo(comp, form))
-    comp.popRecur()
+    with comp.recurPoint(recur):
+        code.extend(compileImplcitDo(comp, form))
     comp.popAliases(args)
     return code
 
@@ -456,15 +455,15 @@ def compileFn(comp, name, form, orgform):
     "args": map(lambda x: comp.getAlias(Symbol(x)).compileSet(comp), args)}
 
     code.append((recurlabel, None))
-    comp.pushRecur(recur)
-    code.extend(compileImplcitDo(comp, form.next()))
-    comp.popRecur()
+    with comp.recurPoint(recur):
+        code.extend(compileImplcitDo(comp, form.next()))
     code.append((RETURN_VALUE,None))
     comp.popAliases(locals)
 
     clist = map(lambda x: RT.name(x.sym), comp.closureList())
     code = expandMetas(code, comp)
-    c = Code(code, clist, args, lastisargs, False, True, str(Symbol(comp.getNS().__name__, name.name)), comp.filename, 0, None)
+    c = Code(code, clist, args, lastisargs, False, True,
+             str(Symbol(comp.getNS().__name__, name.name)), comp.filename, 0, None)
     if not clist:
         c = types.FunctionType(c.to_code(), comp.ns.__dict__, name.name)
 
@@ -529,11 +528,10 @@ class MultiFn(object):
         "args": map(lambda x: comp.getAlias(Symbol(x)).compileSet(comp), self.args)}
 
         bodycode = [(recurlabel, None)]
-        comp.pushRecur(recur)
-        bodycode.extend(compileImplcitDo(comp, body))
-        bodycode.append((RETURN_VALUE, None))
-        bodycode.extend(emitLanding(endLabel))
-        comp.popRecur()
+        with comp.recurPoint(recur):
+            bodycode.extend(compileImplcitDo(comp, body))
+            bodycode.append((RETURN_VALUE, None))
+            bodycode.extend(emitLanding(endLabel))
         comp.popAliases(self.locals)
 
         self.argcode = argcode
@@ -592,59 +590,50 @@ def compileImplcitDo(comp, form):
 
 @register_builtin("fn*")
 def compileFNStar(comp, form):
-    haslocalcaptures = False
     aliases = []
-    if len(comp.aliases) > 0: # we might have closures to deal with
-        for x in comp.aliases:
-
-            comp.pushAlias(x, Closure(x))
-            aliases.append(x)
-        haslocalcaptures = True
+    for sym in comp.aliases: # we might have closures to deal with
+        comp.pushAlias(sym, Closure(sym))
+        aliases.append(sym)
 
     orgform = form
     if len(form) < 2:
         raise CompilerException("2 or more arguments to fn* required", form)
     form = form.next()
-    name = form.first()
-    pushed = False
+    first = form.first()
+    sym = first if isinstance(first, Symbol) else None
 
-    if not isinstance(name, Symbol):
-        name = comp.getNamesString() + "_auto_"
-    else:
-        comp.pushName(name.name)
-        pushed = True
-        form = form.next()
+    with comp.name(sym):
 
-    name = Symbol(name)
+        if sym:
+            form = form.next()
+        else:
+            sym = Symbol(comp.getNamesString() + "_auto_")
 
-    # This is fun stuff here. The idea is that we want closures to be able
-    # to call themselves. But we can't get a pointer to a closure until after
-    # it's created, which is when we actually run this code. So, we're going to
-    # create a tmp local that is None at first, then pass that in as a possible
-    # closure cell. Then after we create the closure with MAKE_CLOSURE we'll
-    # populate this var with the correct value
+        # This is fun stuff here.  The idea is that we want closures to
+        # be able to call themselves.  But we can't get a pointer to a
+        # closure until after it's created, which is when we actually
+        # run this code.  So, we're going to create a tmp local that
+        # is None at first, then pass that in as a possible closure
+        # cell.  Then after we create the closure with MAKE_CLOSURE
+        # we'll populate this var with the correct value
 
-    selfalias = Closure(name)
-    comp.pushAlias(name, selfalias)
+        selfalias = Closure(sym)
+        comp.pushAlias(sym, selfalias)
 
-    # form = ([x] x)
-    if isinstance(form.first(), IPersistentVector):
-        code, ptr = compileFn(comp, name, form, orgform)
-    # form = (([x] x))
-    elif len(form) == 1:
-        code, ptr = compileFn(comp, name, RT.list(*form.first()), orgform)
-    # form = (([x] x) ([x y] x))
-    else:
-        code, ptr = compileMultiFn(comp, name, form)
-
-    if pushed:
-        comp.popName()
+        # form = ([x] x)
+        if isinstance(form.first(), IPersistentVector):
+            code, ptr = compileFn(comp, sym, form, orgform)
+        # form = (([x] x))
+        elif len(form) == 1:
+            code, ptr = compileFn(comp, sym, RT.list(*form.first()), orgform)
+        # form = (([x] x) ([x y] x))
+        else:
+            code, ptr = compileMultiFn(comp, sym, form)
 
     clist = comp.closureList()
     fcode = []
 
-    if haslocalcaptures:
-        comp.popAliases(aliases)
+    comp.popAliases(aliases)
 
     if clist:
         for x in clist:
@@ -666,7 +655,7 @@ def compileFNStar(comp, form):
         code.append((DUP_TOP, None))
         code.extend(selfalias.compileSet(comp))
 
-    comp.popAlias(Symbol(name)) #closure
+    comp.popAlias(sym) #closure
     return code
 
 
@@ -683,15 +672,15 @@ def compileVector(comp, form):
 def compileRecur(comp, form):
     s = form.next() or []
     code = []
-    if len(s) > len(comp.recurPoint.first()["args"]):
+    if len(s) > len(comp.getRecurPoint()["args"]):
         raise CompilerException("too many arguments to recur", form)
     for recur_val in s:
         code.extend(comp.compile(recur_val))
-    sets = comp.recurPoint.first()["args"][:]
+    sets = comp.getRecurPoint()["args"][:]
     sets.reverse()
     for x in sets:
         code.extend(x)
-    code.append((JUMP_ABSOLUTE, comp.recurPoint.first()["label"]))
+    code.append((JUMP_ABSOLUTE, comp.getRecurPoint()["label"]))
     return code
 
 
@@ -1039,96 +1028,101 @@ def compileTryCatchFinally(comp, body, catches, fin):
     return code
 
 
-"""
-We should mention a few words about aliases. Aliases are created when the
-user uses closures, fns, loop, let, or let-macro. For some forms like
-let or loop, the alias just creates a new local variable in which to store the
-data. In other cases, closures are created. To handle all these cases, we have
-a base AAlias class which provides basic single-linked list abilites. This will
-allow us to override what certain symbols resolve to.
+# We should mention a few words about aliases.  Aliases are created when
+# the user uses closures, fns, loop, let, or let-macro.  For some forms
+# like let or loop, the alias just creates a new local variable in which
+# to store the data.  In other cases, closures are created.  To handle
+# all these cases, we store aliases on stacks.  This will allow us to
+# override what certain symbols resolve to.
+#
+# For instance:
+#
+# (fn bar [a b]
+#    (let [b (inc b)
+#          z 1]
+#        (let-macro [a (fn [fdecl& env& decl] 'z)]
+#            (let [o (fn [a] a)]
+#                 [a (o b)]))))
+#
+# As each new local is created, it is pushed onto the stack, then only
+# the top most local is executed whenever a new local is resolved.  This
+# allows the above example to resolve exactly as desired. lets will
+# never stop on top of each other, let-macros can turn 'x into (.-x
+# self), etc.
 
-For instance:
-
-(fn bar [a b]
-    (let [b (inc b)
-          z 1]
-        (let-macro [a (fn [fdecl& env& decl] 'z)]
-            (let [o (fn [a] a)]
-                 [a o b]))))
-
-As each new local is created, it is pushed onto the stack, then only the
-top most local is executed whenever a new local is resolved. This allows
-the above example to resolve exactly as desired. lets will never stop on
-top of eachother, let-macros can turn 'x into (.-x self), etc.
-"""
-
-class AAlias(object):
+class Alias(object):
     """Base class for all aliases"""
-    def __init__(self, rest = None):
-        self.rest = rest
+
     def compile(self, comp):
         raise AbstractMethodCall(self)
+
     def compileSet(self, comp):
         raise AbstractMethodCall(self)
-    def next(self):
-        return self.rest
 
 
-class FnArgument(AAlias):
-    """An alias provided by the arguments to a fn*
-       in the fragment (fn [a] a) a is a FnArgument"""
-    def __init__(self, sym, rest = None):
-        AAlias.__init__(self, rest)
+class FnArgument(Alias):
+    """An alias provided by the arguments to a fn* in the fragment (fn
+    [a] a) a is a FnArgument"""
+
+    def __init__(self, sym):
         self.sym = sym
+
     def compile(self, comp):
         return [(LOAD_FAST, RT.name(self.sym))]
+
     def compileSet(self, comp):
         return [(STORE_FAST, RT.name(self.sym))]
 
 
-class RenamedLocal(AAlias):
+class RenamedLocal(Alias):
     """An alias created by a let, loop, etc."""
-    def __init__(self, sym, rest = None):
-        AAlias.__init__(self, rest)
+
+    def __init__(self, sym):
         self.sym = sym
         self.newsym = Symbol(RT.name(sym) + str(RT.nextID()))
+
     def compile(self, comp):
         return [(LOAD_FAST, RT.name(self.newsym))]
+
     def compileSet(self, comp):
         return [(STORE_FAST, RT.name(self.newsym))]
 
 
-class Closure(AAlias):
+class Closure(Alias):
     """Represents a value that is contained in a closure"""
-    def __init__(self, sym, rest = None):
-        AAlias.__init__(self, rest)
+
+    def __init__(self, sym):
         self.sym = sym
         self.isused = False  ## will be set to true whenever this is compiled
+
     def isUsed(self):
         return self.isused
+
     def compile(self, comp):
         self.isused = True
         return [(LOAD_DEREF, RT.name(self.sym))]
+
     def compileSet(self, comp):
         return [(STORE_DEREF, RT.name(self.sym))]
 
 
-class LocalMacro(AAlias):
+class LocalMacro(Alias):
     """represents a value that represents a local macro"""
-    def __init__(self, sym, macroform, rest = None):
-        AAlias.__init__(self, rest)
+
+    def __init__(self, sym, macroform):
         self.sym = sym
         self.macroform = macroform
+
     def compile(self, comp):
         code = comp.compile(self.macroform)
         return code
 
 
-class SelfReference(AAlias):
-    def __init__(self, var, rest = None):
-        AAlias.__init__(self, rest)
+class SelfReference(Alias):
+    def __init__(self, var):
         self.var = var
         self.isused = False
+
     def compile(self, comp):
         self.isused = True
         return [(LOAD_CONST, self.var),
@@ -1138,22 +1132,9 @@ class SelfReference(AAlias):
 
 class Name(object):
     """Slot for a name"""
-    def __init__(self, name, rest=None):
+    def __init__(self, name):
         self.name = name
         self.isused = False
-        self.rest = rest
-
-    def __str__(self):
-        v = []
-        r = self
-        while r is not None:
-            v.append(r.name)
-            r = r.rest
-        v.reverse()
-        s = "_".join(v)
-        if self.isused:
-            s = s + str(RT.nextID())
-        return s
 
 
 def evalForm(form, ns):
@@ -1206,11 +1187,11 @@ def macroexpand(form, comp, one=False):
 
 class Compiler(object):
     def __init__(self):
-        self.recurPoint = RT.list()
-        self.names = None
+        self.aliases = {}
+        self._recurPoints = []
+        self._names = []
         self.ns = clojure_core = Namespace("clojure.core")
         self.lastlineno = -1
-        self.aliases = {}
         self.filename = "<unknown>"
         self._NS_ = findItem(clojure_core, _NS_)
 
@@ -1218,55 +1199,50 @@ class Compiler(object):
         self.filename = filename
 
     def pushAlias(self, sym, alias):
-        """ Pushes this alias onto the alias stack for the entry sym.
-            if no entry is found, a new one is created """
-        if sym in self.aliases:
-            alias.rest = self.aliases[sym]
-            self.aliases[sym] = alias
-        else:
-            self.aliases[sym] = alias
+        self.aliases.setdefault(sym, []).append(alias)
 
     def getAlias(self, sym):
-        """ Retreives to top alias for this entry """
-        if sym in self.aliases:
-            return self.aliases[sym]
-        return None
+        return self.aliases.get(sym, [None])[-1]
 
     def popAlias(self, sym):
-        """ Removes the top alias for this entry. If the entry would be
-            empty after this pop, the entry is deleted """
-        if sym in self.aliases and self.aliases[sym].rest is None:
-            del self.aliases[sym]
-            return
-        self.aliases[sym] = self.aliases[sym].rest
-        return
+        self.aliases[sym].pop()
+        if not self.aliases[sym]:
+            self.aliases.pop(sym)
 
     def popAliases(self, syms):
-        for x in syms:
-            self.popAlias(x)
+        for sym in syms:
+            self.popAlias(sym)
 
-    def pushRecur(self, label):
-        """ Pushes a new recursion label. All recur calls will loop back to this point """
-        self.recurPoint = RT.cons(label, self.recurPoint)
-    def popRecur(self):
-        """ Pops the top most recursion point """
-        self.recurPoint = self.recurPoint.next()
+    @contextmanager
+    def recurPoint(self, label):
+        """Temporarily set the target of recur calls to a label.
+        """
+        self._recurPoints.append(label)
+        yield
+        self._recurPoints.pop()
 
-    def pushName(self, name):
-        if self.names is None:
-            self.names = Name(name)
+    def getRecurPoint(self):
+        return self._recurPoints[-1]
+
+    @contextmanager
+    def name(self, sym=None):
+        """Temporarily add a symbol's name to the name stack, if not None.
+        """
+        if sym is not None:
+            self._names.append(Name(sym.name))
+            yield
+            self._names.pop()
         else:
-            self.names = Name(name, self.names)
-
-    def popName(self):
-        self.names = self.names.rest
+            yield
 
     def getNamesString(self, markused=True):
-        if self.names is None:
+        if not self._names:
             return "fn_{0}".format(RT.nextID())
-        s = str(self.names)
-        if markused and self.names is not None:
-            self.names.isused = True
+        s = "_".join(r.name for r in self._names)
+        if self._names[-1].isused:
+            s += str(RT.nextID())
+        if markused:
+            self._names[-1].isused = True
         return s
 
     def compileMethodAccess(self, form):
@@ -1362,10 +1338,8 @@ class Compiler(object):
     def compileSymbol(self, sym):
         """ Compiles the symbol. First the compiler tries to compile it
             as an alias, then as a global """
-            
-        if sym in self.aliases:
+        if self.getAlias(sym):
             return self.compileAlias(sym)
-
         return self.compileAccessList(sym)
 
     def compileAlias(self, sym):
@@ -1377,8 +1351,8 @@ class Compiler(object):
 
     def closureList(self):
         closures = []
-        for x in self.aliases:
-            alias = self.aliases[x]
+        for sym in self.aliases:
+            alias = self.getAlias(sym)
             if isinstance(alias, Closure) and alias.isUsed():
                 closures.append(alias)
         return closures
@@ -1467,23 +1441,6 @@ class Compiler(object):
         with threadBindings({self._NS_: ns}):
             retval = eval(c, ns.__dict__)
         return retval
-
-    def pushPropertyAlias(self, mappings):
-        locals = {}
-        for x in mappings:
-            if x in self.aliasedProperties:
-                self.aliasedProperties[x].append(mappings[x])
-            else:
-                self.aliasedProperties[x] = [mappings[x]]
-
-    def popPropertyAlias(self, mappings):
-        dellist = []
-        for x in mappings:
-            self.aliasedProperties[x].pop()
-            if not len(self.aliasedProperties[x]):
-                dellist.append(x)
-        for x in dellist:
-            del self.aliasedProperties[x]
 
     def standardImports(self):
         return [(LOAD_CONST, -1),
