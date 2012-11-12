@@ -1031,6 +1031,35 @@ def compileTryCatchFinally(comp, body, catches, fin):
     return code
 
 
+@register_builtin("set!")
+def compileSetattr(comp, form):
+    if len(form) != 3:
+        raise CompilerException("set! must have two arguments", form)
+    target_attr = form.next().first()
+    invalid_exn = CompilerException("Invalid target for set!", form)
+    if not isinstance(target_attr, ISeq):
+        raise invalid_exn
+    first = target_attr.first()
+    if not isinstance(first, Symbol):
+        raise invalid_exn
+    if (first.ns is None and
+        first.name.startswith(".") and first.name != "."):
+        target_attr = RT.list(
+            Symbol("."), target_attr.next().first(), Symbol(first.name[1:]),
+            *(target_attr.next().next() or ()))
+    if len(target_attr) != 3 or target_attr.first() != Symbol("."):
+        print(target_attr)
+        raise invalid_exn
+    target = target_attr.next().first()
+    attr = target_attr.next().next().first()
+    val = form.next().next().first()
+    code = (comp.compile(val) +
+            [(DUP_TOP, None)] +
+            comp.compile(target) +
+            [(STORE_ATTR, attr.name)])
+    return code
+
+
 # We should mention a few words about aliases.  Aliases are created when
 # the user uses closures, fns, loop, let, or let-macro.  For some forms
 # like let or loop, the alias just creates a new local variable in which
