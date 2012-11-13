@@ -80,10 +80,7 @@
                                       (.toDict ~methods)))
                      (clojure.lang.protocol/protocolFromType (ns-name ~'*ns*) ~name)
                 ~@(for [s sigs :when (string? (last s))]
-                    `(py/setattr (resolve ~(list 'quote (first s)))
-                                 "__doc__"
-                                 ~(last s)))))))
-
+                    `(set! (.doc (resolve ~(list 'quote (first s)))) ~(last s)))))))
 
 (defmacro reify
   "reify is a macro with the following structure:
@@ -134,8 +131,7 @@
                            (.toDict ~methods))]
        ; setting __name__ back to its expected value
        ~@(map (fn [name]
-                `(py/setattr (.-__func__ (py/getattr ~'type ~name))
-                             "__name__" ~name))
+                `(set! (.__name__ (.-__func__ (. ~'type ~(symbol (str "-" name))))) ~name))
               (keys methods))
        ~@(map (fn [interface]
                 `(clojure.lang.protocol/extendForType ~interface ~'type))
@@ -224,8 +220,7 @@
                                      (py.bytecode/LOAD_ATTR "_hash" self)
                                     (let [hash (reduce hash-combine
                                                        (map #(py/getattr %2 %1) (keys self) (repeat self)))]
-                                         (py/setattr self "_hash" hash)
-                                         hash)))
+                                      (set! (._hash self) hash))))
 
                  "seq" '(fn seq
                             [self]

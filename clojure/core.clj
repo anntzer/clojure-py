@@ -337,7 +337,7 @@
 
 (def set-macro
   (fn set-macro [f]
-    (py/setattr f "macro?" true)
+    (set! (.macro? f) true)
     f))
 
 (set-macro defn)
@@ -425,7 +425,7 @@
               (list 'do
                     (cons `defn decl)
                     (list 'set-macro name)
-                    (list 'py/setattr name "_macro-form" (list 'quote decl))
+                    (list 'set! (list '._macro-form name) (list 'quote decl))
                     name))))
 
 (set-macro defmacro)
@@ -619,10 +619,11 @@
          args ['self]
          body []]
     (py/if (not fields)
-      (cons 'fn (cons '__init__ (cons args body)))
+      (cons 'fn (cons '__init__ (cons args (conj body nil))))
       (let [newargs (conj args (first fields))
             newbody (conj body
-                          (list 'py/setattr 'self (py/str (first fields)) (first fields)))]
+                          (list 'set! (list '. 'self (first fields))
+                                (first fields)))]
            (recur (next fields) newargs newbody)))))
 
 (defn make-props
@@ -633,7 +634,7 @@
       props
       (recur (next remain)
              (conj (conj props (first remain))
-                   (list 'py/getattr selfname (.-name (first remain))))))))
+                   (list '. selfname (symbol (str "-" (.-name (first remain))))))))))
 
 (defn prop-wrap-fn
   [name members f]
@@ -722,22 +723,21 @@
     (LazySeq nil nil (.seq self) meta))
   (sval [self]
     (when (not (nil? fnc))
-      (py/setattr self "sv" (fnc))
-      (py/setattr self "fnc" nil))
+      (set! (.sv self) (fnc))
+      (set! (.fnc self) nil)
     (py/if (not (nil? sv))
       sv
-      s))
+      s)))
   clojure.lang.iseq/ISeq
   (seq [self]
     (.sval self)
     (when (not (nil? sv))
       (let [ls sv]
-        (py/setattr self "sv" nil)
-          (py/setattr self "s"
-          (loop [ls ls]
-            (py/if (instance? LazySeq ls)
-              (recur (.sval ls))
-              (seq ls))))))
+        (set! (.sv self) nil)
+        (set! (.s self) (loop [ls ls]
+                          (py/if (instance? LazySeq ls)
+                            (recur (.sval ls))
+                            (seq ls))))))
     s)
   (__len__ [self]
     (loop [c 0
@@ -873,11 +873,11 @@
 (deftype ChunkBuffer [buffer end]
   (add [self o]
     (py.bytecode/STORE_SUBSCR o buffer end)
-    (py/setattr self "end" (inc end)))
+    (set! (.end self) (inc end)))
   (chunk [self]
     (let [ret (ArrayChunk buffer 0 end)]
-       (py/setattr self "buffer" nil)
-       ret))
+      (set! (.buffer self) nil)
+      ret))
   (__len__ [self] end))
 
 (deftype ChunkedCons [_meta chunk _more]
@@ -2833,9 +2833,8 @@
   {:added "1.0"
    :static true}
   [alias namespace-sym]
-  (py/setattr *ns*
-              "__aliases__"
-              (assoc (ns-aliases *ns*) alias (the-ns namespace-sym))))
+  (set! (.__aliases__ *ns*)
+        (assoc (ns-aliases *ns*) alias (the-ns namespace-sym))))
 
 (defn ns-unalias
   "Removes the alias for the symbol from the namespace."
@@ -2843,7 +2842,8 @@
    :static true}
   [ns sym]
   (let [to-ns (the-ns ns)]
-    (py/setattr to-ns "__aliases__" (dissoc (ns-aliases to-ns) sym))))
+    (set! (.__aliases__ to-ns)
+          (dissoc (ns-aliases to-ns) sym))))
 
 (defn ns-resolve
   "Returns the var or Class to which a symbol will be resolved in the namespace
