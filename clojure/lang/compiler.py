@@ -307,35 +307,38 @@ def compileLetStar(comp, form):
 
 @register_builtin(".")
 def compileDot(comp, form):
-    if len(form) != 3:
-        raise CompilerException(". form must have two arguments", form)
-    clss = form.next().first()
-    member = form.next().next().first()
-
-    if isinstance(member, Symbol):
-        attr = member.name
-        args = []
-    elif isinstance(member, ISeq):
-        if not isinstance(member.first(), Symbol):
-            raise CompilerException("Member name must be symbol", form)
-        attr = member.first().name
-        args = []
-        if len(member) > 1:
-            f = member.next()
-            while f is not None:
-                args.append(comp.compile(f.first()))
-                f = f.next()
-
-    alias = comp.getAlias(clss)
-    if alias:
-        code = alias.compile(comp)
-        code.append((LOAD_ATTR, attr))
+    if len(form) < 3:
+        raise CompilerException(
+            "Dot form must have at least two arguments", form)
+    cls = form.next().first()
+    attr = form.next().next().first()
+    args = form.next().next().next()
+    if isinstance(attr, ISeq):
+        if args is not None:
+            raise CompilerException("Invalid dot form", form)
+        args = attr.next()
+        attr = attr.first()
+    if not isinstance(attr, Symbol) and attr.ns is None:
+        raise CompilerException("Invalid dot form", form)
+    if attr.name.startswith("-"):
+        # attribute access
+        attr = attr.name[1:]
+        call = False
     else:
-        code = comp.compile(Symbol(clss, attr))
-
-    for x in args:
-        code.extend(x)
-    code.append((CALL_FUNCTION, len(args)))
+        # method access
+        attr = attr.name
+        call = True
+    code = comp.compile(cls) + [(LOAD_ATTR, attr)]
+    if not call:
+        if args is not None:
+            raise CompilerException(
+                "Dot-dash form must have two arguments", form)
+    else:
+        n_args = len(args or [])
+        while args:
+            code += comp.compile(args.first())
+            args = args.next()
+        code += [(CALL_FUNCTION, n_args)]
     return code
 
 
@@ -1157,11 +1160,18 @@ def meta(form):
 
 
 def macroexpand(form, comp, one=False):
-    if isinstance(form.first(), Symbol):
-        if form.first().ns == 'py' or form.first().ns == "py.bytecode":
+    first = form.first()
+    if isinstance(first, Symbol):
+        if first.ns == 'py' or first.ns == "py.bytecode":
             return form, False
 
-        itm = findItem(comp.getNS(), form.first())
+        if (first.ns is None and
+            first.name.startswith(".") and first.name != "."):
+            form = RT.list(Symbol("."), form.next().first(),
+                           Symbol(first.name[1:]), *(form.next().next() or ()))
+            return comp.compile(form), True
+
+        itm = findItem(comp.getNS(), first)
         dreffed = itm
         if isinstance(dreffed, Var):
             dreffed = itm.deref()
@@ -1244,29 +1254,6 @@ class Compiler(object):
         if markused:
             self._names[-1].isused = True
         return s
-
-    def compileMethodAccess(self, form):
-        attrname = form.first().name[1:]
-        if len(form) < 2:
-            raise CompilerException(
-                "Method access must have at least one argument", form)
-        c = self.compile(form.next().first())
-        c.append((LOAD_ATTR, attrname))
-        s = form.next().next()
-        while s is not None:
-            c.extend(self.compile(s.first()))
-            s = s.next()
-        c.append((CALL_FUNCTION, (len(form) - 2)))
-        return c
-
-    def compilePropertyAccess(self, form):
-        attrname = form.first().name[2:]
-        if len(form) != 2:
-            raise CompilerException(
-                "Property access must have at only one argument", form)
-        c = self.compile(form.next().first())
-        c.append((LOAD_ATTR, attrname))
-        return c
 
     def compileForm(self, form):
         if form.first() in builtins:

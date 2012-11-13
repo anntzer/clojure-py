@@ -51,7 +51,7 @@
    :tag clojure.lang.ISeq
    :added "1.0"
    :static true}
- seq (fn seq [coll] (. clojure.lang.rt (seq coll))))
+ seq (fn seq [coll] (clojure.lang.rt/seq coll)))
 
 (def
  ^{:arglists '([^Class c x])
@@ -578,7 +578,7 @@
   {:added "1.0"}
   ([] (gensym "G__"))
   ([prefix-string]
-    (symbol (str prefix-string (py/str (. clojure.lang.rt (nextID)))))))
+    (symbol (str prefix-string (py/str (clojure.lang.rt/nextID))))))
 
 (defn keyword
   "Returns a keyword for the given string"
@@ -1385,7 +1385,7 @@
   ([set] set)
   ([set key]
    (when set
-     (. set (disjoin key))))
+     (.disjoin set key)))
   ([set key & ks]
    (when set
      (let [ret (disj set key)]
@@ -1448,7 +1448,7 @@
   "Returns the value in the map entry."
   {:added "1.0"
    :static true}
-  [e] (. e (getValue)))
+  [e] (.getValue e))
 
 ;;; classes and coercion
 (defn class
@@ -2159,7 +2159,7 @@
   ([v start]
    (subvec v start (count v)))
   ([v start end]
-   (. clojure.lang.rt (subvec v start end))))
+   (clojure.lang.rt/subvec v start end)))
 
 (defn interleave
   "Returns a lazy seq of the first item in each coll, then the second etc."
@@ -3810,7 +3810,7 @@ Returns val."
   {:added "1.0"
    :static true}
   [^clojure.lang.Ref ref fun & args]
-    (. ref (alter fun args)))
+    (.alter ref fun args))
 
 (defn commute
   "Must be called in a transaction. Sets the in-transaction-value of
@@ -3830,7 +3830,7 @@ Returns val."
   {:added "1.0"
    :static true}
   [^clojure.lang.Ref ref fun & args]
-    (. ref (commute fun args)))
+    (.commute ref fun args))
 
 (defn ensure
   "Must be called in a transaction. Protects the ref from modification
@@ -3839,8 +3839,8 @@ Returns val."
   {:added "1.0"
    :static true}
   [^clojure.lang.Ref ref]
-    (. ref (touch))
-    (. ref (deref)))
+    (.touch ref)
+    (.deref ref))
 
 (require 'multiprocessing.pool)
 (def solo-executor (multiprocessing.pool/ThreadPool))
@@ -3932,7 +3932,7 @@ Returns val."
   or sorted-map), in reverse order. If rev is empty returns nil"
   {:added "1.0"
    :static true}
-  [rev] (. rev (rseq)))
+  [rev] (.rseq rev rseq))
 
 (defn macroexpand-1
   "If form represents a macro form, returns its expansion,
