@@ -127,7 +127,8 @@ class KeySeq(ASeq):
             raise ArityException()
 
     def first(self):
-        return self._seq.first().getKey()
+        return self._seq.first()[0]
+        #return self._seq.first().getKey()
 
     def next(self):
         return createKeySeq(self._seq.next())
@@ -159,7 +160,8 @@ class ValueSeq(ASeq):
             raise ArityException()
 
     def first(self):
-        return self._seq.first().getValue()
+        return self._seq.first()[1]
+        #return self._seq.first().getValue()
 
     def next(self):
         return createValueSeq(self._seq.next())

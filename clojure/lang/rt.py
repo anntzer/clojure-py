@@ -128,26 +128,35 @@ def vector(*args):
     return c
 
 
+#def map(*args): #!!!
+    #from clojure.lang.persistenthashmap import EMPTY
+    #if len(args) == 0:
+        #return EMPTY
+    #if len(args) == 1:
+        #if isinstance(args[0], dict):
+            #m = EMPTY
+            #for x in args[0]:
+                #if x in m:
+                    #raise InvalidArgumentException("Duplicate key")
+                #m = m.assoc(x, args[0][x])
+            #return m
+        #if fulfillsIndexable(args[0]):
+            #args = args[0]
+    #m = EMPTY
+    #for x in range(0, len(args), 2):
+        #key = args[x]
+        #value = args[x + 1]
+        #m = m.assoc(key, value)
+    #return m
 def map(*args):
-    from clojure.lang.persistenthashmap import EMPTY
-    if len(args) == 0:
-        return EMPTY
+    from clojure.lang.persistenthashmap import PersistentHashMap
     if len(args) == 1:
         if isinstance(args[0], dict):
-            m = EMPTY
-            for x in args[0]:
-                if x in m:
-                    raise InvalidArgumentException("Duplicate key")
-                m = m.assoc(x, args[0][x])
-            return m
-        if fulfillsIndexable(args[0]):
+            return PersistentHashMap(args[0])
+        else:
             args = args[0]
-    m = EMPTY
-    for x in range(0, len(args), 2):
-        key = args[x]
-        value = args[x + 1]
-        m = m.assoc(key, value)
-    return m
+    return PersistentHashMap({k: v for k, v in zip(args[::2], args[1::2])})
+
 
 def set(*args):
     from clojure.lang.persistenthashset import EMPTY

@@ -52,6 +52,7 @@ class MetaImporter(object):
         """
         if name not in sys.modules:
             sys.modules[name] = None # avoids circular imports
+            #requireClj(self.path)
             try:
                 requireClj(self.path)
             except Exception as exc:

@@ -1438,17 +1438,28 @@
     (clojure.lang.apersistentmap/createValueSeq (seq map))
     (seq (.items map))))
 
+;(defn key
+  ;"Returns the key of the map entry."
+  ;{:added "1.0"
+   ;:static true}
+  ;[e] (.getKey e))
+
+;(defn val
+  ;"Returns the value in the map entry."
+  ;{:added "1.0"
+   ;:static true}
+  ;[e] (. e (getValue)))
 (defn key
   "Returns the key of the map entry."
   {:added "1.0"
    :static true}
-  [e] (.getKey e))
+  [e] (.__getitem__ e 0))
 
 (defn val
   "Returns the value in the map entry."
   {:added "1.0"
    :static true}
-  [e] (. e (getValue)))
+  [e] (.__getitem__ e 1))
 
 ;;; classes and coercion
 (defn class

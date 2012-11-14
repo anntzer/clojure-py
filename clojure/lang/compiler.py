@@ -703,8 +703,10 @@ def compileMap(comp, form):
     code.extend(comp.compile(Symbol("clojure.lang.rt", "map")))
     while s is not None:
         kvp = s.first()
-        code.extend(comp.compile(kvp.getKey()))
-        code.extend(comp.compile(kvp.getValue()))
+        #code.extend(comp.compile(kvp.getKey()))
+        #code.extend(comp.compile(kvp.getValue()))
+        code.extend(comp.compile(kvp[0]))
+        code.extend(comp.compile(kvp[1]))
         c += 2
         s = s.next()
     code.append([CALL_FUNCTION, c])

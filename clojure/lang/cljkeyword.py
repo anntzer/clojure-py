@@ -19,10 +19,10 @@ class Keyword(IFn, Named, IPrintable):
         if sym in Keyword.interned.get():
             return Keyword.interned.get()[sym]
         obj = super(Keyword, cls).__new__(cls)
-        Keyword.interned.mutate(
-            lambda old: old if sym in old else old.assoc(sym, obj))
         obj.sym = sym
         obj.hash = hash(sym) + 0x9e3779b9
+        Keyword.interned.mutate(
+            lambda old: old if sym in old else old.assoc(sym, obj))
         return obj
 
     def __hash__(self):
