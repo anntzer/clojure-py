@@ -121,7 +121,7 @@ def main():
         usage="%prog [options] ... [-c cmd | file | -] [arg] ...",
         version=VERSION_MSG)
     parser.add_option("-c",
-        action="callback", dest="cmd", default="", callback=gobble,
+        action="callback", dest="cmd", callback=gobble,
         help="program passed in as a string (terminates option list)")
     parser.add_option("-i", action="store_true", dest="interactive",
         help="inspect interactively after running script")
@@ -142,6 +142,10 @@ def main():
     dash_and_post = args[i:]
     opts, command_line_args = parser.parse_args(args[:i])
     source = command_line_args.pop(0) if command_line_args else None
+    if not source and opts.cmd is None:
+        opts.interactive = True
+    if opts.cmd is None:
+        opts.cmd = ""
     command_line_args.extend(dash_and_post)
     opts.command_line_args = command_line_args
 
@@ -154,7 +158,7 @@ def main():
                          command_line_args_sym: command_line_args}):
         if source:
             requireClj(source)
-        if opts.interactive or not source and not opts.cmd:
+        if opts.interactive:
             import clojure.repl
             clojure.repl.enable_readline()
             clojure.repl.run_repl(opts, comp)
