@@ -161,11 +161,11 @@
                                     (py/getattr self (name k)))
 
                  "entryAt"  '(fn entryAt
-                                   [self k]
-                                   (when (py/hasattr self (name k))
-                                         (clojure.lang.mapentry/MapEntry
-                                             k
-                                             (py/getattr self (name k)))))
+                               [self k]
+                               (try
+                                 (let [val (py/getattr self (name k))]
+                                   (clojure.lang.mapentry/MapEntry k val))
+                                 (catch py/AttributeError e nil)))
                  "meta" '(fn meta
                             [self]
                             (if (.containsKey self :_meta)
@@ -214,13 +214,15 @@
                                         (every? identity (map = self other))
                                         (= (count self) (count other)))))
 
-                 "__hash__" '(fn __hash__
-                                [self]
-                                (if (py/hasattr self "_hash")
-                                     (py.bytecode/LOAD_ATTR "_hash" self)
-                                    (let [hash (reduce hash-combine
-                                                       (map #(py/getattr %2 %1) (keys self) (repeat self)))]
-                                      (set! (._hash self) hash))))
+                "__hash__" '(fn __hash__
+                              [self]
+                              (try
+                                (.-_hash self)
+                                (catch py/AttributeError e
+                                  (set! (._hash self)
+                                        (reduce hash-combine
+                                                (map #(py/getattr %2 %1)
+                                                     (keys self) (repeat self)))))))
 
                  "seq" '(fn seq
                             [self]
